@@ -43,7 +43,7 @@ test.describe("Chrome Extension: Authentication", () => {
     await expect(select).toBeVisible();
   });
 
-  test("login via extension options page", async () => {
+  test("login and logout via extension options page", async () => {
     await navigateToOptions();
 
     // Fill auth credentials — the AuthSection has username and password inputs
@@ -60,18 +60,8 @@ test.describe("Chrome Extension: Authentication", () => {
 
     // Logout button should now be visible
     await expect(optionsPage.getByRole("button", { name: "Logout" })).toBeVisible();
-  });
 
-  test("logout via extension options page", async () => {
-    // Login first so we can test logout
-    await navigateToOptions();
-    const usernameInput = optionsPage.locator("input").nth(0);
-    const passwordInput = optionsPage.locator("input[type='password']");
-    await usernameInput.fill("fledger");
-    await passwordInput.fill("fledger-local");
-    await optionsPage.getByRole("button", { name: "Login" }).click();
-    await expect(optionsPage.locator("#status")).toContainText("Logged in", { timeout: 30_000 });
-
+    // Now test logout
     await optionsPage.getByRole("button", { name: "Logout" }).click();
     await expect(optionsPage.locator("#status")).toContainText("Logged out", { timeout: 10_000 });
 

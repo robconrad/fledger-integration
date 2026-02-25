@@ -68,6 +68,7 @@ jobs:
       - name: Build API candidate from PR
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
         run: |
+          rm -rf /tmp/fledger-api
           git clone --depth 1 \
             "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
             /tmp/fledger-api
@@ -108,6 +109,7 @@ jobs:
       - name: Checkout API source (fallback build)
         if: steps.pull-api.outputs.built_from_source == 'true'
         run: |
+          rm -rf /tmp/fledger-api
           git clone --depth 1 \
             "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
             /tmp/fledger-api
@@ -134,6 +136,7 @@ jobs:
       - name: Build Web candidate from PR
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-web'
         run: |
+          rm -rf /tmp/fledger-web
           git clone --depth 1 \
             "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-web.git" \
             /tmp/fledger-web
@@ -170,6 +173,7 @@ jobs:
       - name: Checkout Web source (fallback build)
         if: steps.pull-web.outputs.built_from_source == 'true'
         run: |
+          rm -rf /tmp/fledger-web
           git clone --depth 1 \
             "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-web.git" \
             /tmp/fledger-web

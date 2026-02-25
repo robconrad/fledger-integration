@@ -49,7 +49,7 @@ jobs:
         run: |
           DCFG="$RUNNER_TEMP/.docker-ci"
           mkdir -p "$DCFG"
-          echo '{}' > "$DCFG/config.json"
+          echo '{"credsStore":""}' > "$DCFG/config.json"
           echo "${{ secrets.INTEGRATION_PAT }}" | docker --config "$DCFG" login ghcr.io -u robconrad --password-stdin
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 

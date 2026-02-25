@@ -28,6 +28,7 @@ export default defineConfig({
     {
       name: "extension",
       testMatch: /(?:^|[/\\])ext-.*\.spec\.ts$/,
+      retries: 0,
     },
   ],
 });

@@ -67,6 +67,7 @@ test.describe("Chrome Extension: Authentication", () => {
   test("logout via extension options page", async () => {
     // Login first so we can test logout
     const optionsPage = await openOptionsPage();
+    await optionsPage.waitForLoadState("networkidle");
     const usernameInput = optionsPage.locator("input").nth(0);
     const passwordInput = optionsPage.locator("input[type='password']");
     await usernameInput.fill("fledger");

@@ -49,12 +49,17 @@ test.describe("Web UI: Accounts CRUD", () => {
     // Update account — dblclick the name cell to enter edit mode
     const updatedName = `${accountName}-upd`;
     await row.locator("td", { hasText: accountName }).first().dblclick();
-    const nameInput = row.locator("input[type='text']").first();
+
+    // After dblclick, InlineEdit replaces row content with edit form.
+    // The original row locator (hasText) becomes stale since the name
+    // moves from text content into an input value. Locate via tbody scope.
+    const nameInput = page.locator("tbody input[placeholder='Name']");
     await expect(nameInput).toBeVisible({ timeout: 5_000 });
     await nameInput.clear();
     await nameInput.fill(updatedName);
+    const editRow = nameInput.locator("xpath=ancestor::tr");
     const updateDone = waitForOperationResponse(page, "UpdateAccount");
-    await row.getByRole("button", { name: /update/i }).click();
+    await editRow.getByRole("button", { name: /update/i }).click();
     await updateDone;
 
     await page.reload();

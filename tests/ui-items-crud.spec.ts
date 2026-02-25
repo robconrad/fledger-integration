@@ -6,67 +6,58 @@ import {
   createAccount,
   createCategoryGroup,
   createCategory,
+  createItem,
   uniqueSuffix,
 } from "./support/factories.js";
-import { loginViaAPI, selectRowOptionByTyping, waitForOperationResponse, triggerDeleteAndWait } from "./support/browser.js";
+import { loginViaAPI, waitForOperationResponse, triggerDeleteAndWait } from "./support/browser.js";
 
 test.describe("Web UI: Items CRUD", () => {
   let token: string;
-  let accountName: string;
-  let categoryName: string;
 
   test.beforeAll(async ({ request }) => {
     token = await getAuthToken(request);
   });
 
-  test("create, read, update, delete item via UI", async ({ page, request }) => {
-    // Setup prereqs via API
+  test("read, update, delete item via UI", async ({ page, request }) => {
+    // Setup prereqs and create item via API
+    // (MUI DatePicker in the create form is not automatable with standard fill)
     const ag = await createAccountGroup(request, token);
     const at = await createAccountType(request, token);
     const acc = await createAccount(request, token, { account_group_id: ag.id, account_type_id: at.id });
-    accountName = acc.name;
     const cg = await createCategoryGroup(request, token);
     const cat = await createCategory(request, token, { category_group_id: cg.id });
-    categoryName = cat.name;
+    const comments = `ui-item-${uniqueSuffix()}`;
+    const today = new Date().toISOString().split("T")[0]!;
+    await createItem(request, token, {
+      account_id: acc.id,
+      category_id: cat.id,
+      amount: 4250,
+      date: today,
+      comments,
+    });
 
     // Login
     await loginViaAPI(page, request);
 
-    // Navigate to items
+    // Navigate to items and verify item appears
     await page.goto(`${WEB_URL}/items`);
-    await page.waitForLoadState("networkidle");
-
-    // Create item
-    const comments = `ui-item-${uniqueSuffix()}`;
-    const today = new Date().toISOString().split("T")[0]!;
-    const headerRow = page.locator("thead tr").last();
-    await headerRow.locator("input[placeholder='Comments']").fill(comments);
-    await headerRow.locator("input[placeholder='Amount']").fill("42.50");
-    await headerRow.locator("input[type='date']").fill(today);
-
-    // Select account and category via dropdowns
-    await selectRowOptionByTyping(page, headerRow, 0, accountName);
-    await selectRowOptionByTyping(page, headerRow, 1, categoryName);
-
-    const createDone = waitForOperationResponse(page, "CreateItem");
-    await headerRow.getByRole("button", { name: /create/i }).click();
-    await createDone;
-
-    // Verify item appears after reload
-    await page.reload();
     await page.waitForLoadState("networkidle");
     const row = page.locator("tbody tr", { hasText: comments });
     await expect(row).toBeVisible({ timeout: 15_000 });
 
-    // Update item
+    // Update item — dblclick the comments cell to enter edit mode
     const updatedComments = `${comments}-upd`;
     await row.locator("td", { hasText: comments }).dblclick();
-    const commentsInput = row.locator("input[type='text']").first();
+
+    // After dblclick, InlineEdit replaces row content with edit form.
+    // Locate via tbody scope since row locator becomes stale.
+    const commentsInput = page.locator("tbody input[placeholder='Comments']");
     await expect(commentsInput).toBeVisible({ timeout: 5_000 });
     await commentsInput.clear();
     await commentsInput.fill(updatedComments);
+    const editRow = commentsInput.locator("xpath=ancestor::tr");
     const updateDone = waitForOperationResponse(page, "UpdateItem");
-    await row.getByRole("button", { name: /update/i }).click();
+    await editRow.getByRole("button", { name: /update/i }).click();
     await updateDone;
 
     await page.reload();

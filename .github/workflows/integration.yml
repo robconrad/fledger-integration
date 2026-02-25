@@ -44,8 +44,14 @@ jobs:
           fi
 
       # --- Login to GHCR ---
+      # Use a temp Docker config dir to avoid macOS keychain issues on self-hosted runners
       - name: Login to GHCR
-        run: echo "${{ secrets.INTEGRATION_PAT }}" | docker login ghcr.io -u robconrad --password-stdin
+        run: |
+          export DOCKER_CONFIG="$RUNNER_TEMP/.docker"
+          mkdir -p "$DOCKER_CONFIG"
+          echo '{}' > "$DOCKER_CONFIG/config.json"
+          echo "${{ secrets.INTEGRATION_PAT }}" | docker login ghcr.io -u robconrad --password-stdin
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
 
       # --- Build or pull API image ---
       - name: Build API candidate from PR

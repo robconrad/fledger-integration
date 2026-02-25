@@ -14,37 +14,42 @@ test.beforeAll(async ({ request }) => {
 
 test.describe("Accounts CRUD via GraphQL", () => {
   const uniqueName = `test-account-${Date.now()}`;
-  let accountId: string;
+  let accountId: number;
 
   test("create account", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation CreateAccount($input: AccountInput!) {
-          createAccount(input: $input) { id name }
+        query: `mutation {
+          create_account(
+            account: {
+              priority: 999
+              name: "${uniqueName}"
+              account_group_id: 1
+              account_type_id: 1
+              inactive: false
+            }
+          ) { id name }
         }`,
-        variables: {
-          input: { name: uniqueName, account_type_id: 1, account_group_id: 1 },
-        },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.createAccount.name).toBe(uniqueName);
-    accountId = body.data.createAccount.id;
+    expect(body.data.create_account.name).toBe(uniqueName);
+    accountId = Number(body.data.create_account.id);
   });
 
   test("read account", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `{ accounts(inactive: false, size: 100) { id name } }`,
+        query: `{ accounts(inactive: false, size: 200) { id name } }`,
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
     const found = body.data.accounts.find(
-      (a: { id: string }) => a.id === accountId
+      (a: { id: string }) => Number(a.id) === accountId
     );
     expect(found).toBeDefined();
     expect(found.name).toBe(uniqueName);
@@ -55,32 +60,36 @@ test.describe("Accounts CRUD via GraphQL", () => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation UpdateAccount($id: Long!, $input: AccountInput!) {
-          updateAccount(id: $id, input: $input) { id name }
+        query: `mutation {
+          update_account(
+            id: ${accountId}
+            account: {
+              priority: 999
+              name: "${updatedName}"
+              account_group_id: 1
+              account_type_id: 1
+              inactive: false
+            }
+          ) { id name }
         }`,
-        variables: {
-          id: Number(accountId),
-          input: { name: updatedName, account_type_id: 1, account_group_id: 1 },
-        },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.updateAccount.name).toBe(updatedName);
+    expect(body.data.update_account.name).toBe(updatedName);
   });
 
   test("delete account", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation DeleteAccount($id: Long!) {
-          deleteAccount(id: $id)
+        query: `mutation {
+          delete_account(id: ${accountId})
         }`,
-        variables: { id: Number(accountId) },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.deleteAccount).toBe(true);
+    expect(body.data.delete_account).toBe(true);
   });
 });

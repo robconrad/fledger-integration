@@ -13,8 +13,8 @@ test.beforeAll(async ({ request }) => {
 });
 
 test.describe("Items CRUD via GraphQL", () => {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  let itemId: string;
+  const today = new Date().toISOString().split("T")[0]!; // YYYY-MM-DD
+  let itemId: number;
 
   // Items require a valid account and category — use ID 1 (seeded by migrations)
   const accountId = 1;
@@ -24,25 +24,24 @@ test.describe("Items CRUD via GraphQL", () => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation CreateItem($input: ItemInput!) {
-          createItem(input: $input) { id date amount description }
+        query: `mutation {
+          create_item(
+            item: {
+              date: "${today}"
+              amount: 4250
+              comments: "integration-test-item"
+              account_id: ${accountId}
+              category_id: ${categoryId}
+            }
+          ) { id date amount comments }
         }`,
-        variables: {
-          input: {
-            date: today,
-            amount: 42.50,
-            description: "integration-test-item",
-            account_id: accountId,
-            category_id: categoryId,
-          },
-        },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.createItem.description).toBe("integration-test-item");
-    expect(body.data.createItem.amount).toBe(42.50);
-    itemId = body.data.createItem.id;
+    expect(body.data.create_item.comments).toBe("integration-test-item");
+    expect(body.data.create_item.amount).toBe(4250);
+    itemId = Number(body.data.create_item.id);
   });
 
   test("read items", async ({ request }) => {
@@ -50,58 +49,57 @@ test.describe("Items CRUD via GraphQL", () => {
       headers: { Authorization: `Bearer ${token}` },
       data: {
         query: `{
-          items(account_id: ${accountId}, size: 100) {
-            id date amount description
-          }
+          items(
+            item_filters: { account_id: ${accountId} }
+            size: 100
+          ) { id date amount comments }
         }`,
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
     const found = body.data.items.find(
-      (i: { id: string }) => i.id === itemId
+      (i: { id: string }) => Number(i.id) === itemId
     );
     expect(found).toBeDefined();
-    expect(found.description).toBe("integration-test-item");
+    expect(found.comments).toBe("integration-test-item");
   });
 
   test("update item", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation UpdateItem($id: Long!, $input: ItemInput!) {
-          updateItem(id: $id, input: $input) { id amount description }
+        query: `mutation {
+          update_item(
+            id: ${itemId}
+            item: {
+              date: "${today}"
+              amount: 9999
+              comments: "integration-test-item-updated"
+              account_id: ${accountId}
+              category_id: ${categoryId}
+            }
+          ) { id amount comments }
         }`,
-        variables: {
-          id: Number(itemId),
-          input: {
-            date: today,
-            amount: 99.99,
-            description: "integration-test-item-updated",
-            account_id: accountId,
-            category_id: categoryId,
-          },
-        },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.updateItem.description).toBe("integration-test-item-updated");
-    expect(body.data.updateItem.amount).toBe(99.99);
+    expect(body.data.update_item.comments).toBe("integration-test-item-updated");
+    expect(body.data.update_item.amount).toBe(9999);
   });
 
   test("delete item", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: {
-        query: `mutation DeleteItem($id: Long!) {
-          deleteItem(id: $id)
+        query: `mutation {
+          delete_item(id: ${itemId})
         }`,
-        variables: { id: Number(itemId) },
       },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.deleteItem).toBe(true);
+    expect(body.data.delete_item).toBe(true);
   });
 });

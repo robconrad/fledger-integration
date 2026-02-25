@@ -27,7 +27,7 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -83,11 +83,44 @@ jobs:
           sbt assembly
           docker build --platform linux/amd64 -t fledger-api:candidate .
 
-      - name: Pull latest API image
+      - name: Pull latest API image (or build from source)
         if: steps.mode.outputs.source_repo != 'fledger-api' || steps.mode.outputs.mode != 'pr-gate'
+        id: pull-api
         run: |
-          docker pull ghcr.io/robconrad/fledger-api:latest
-          docker tag ghcr.io/robconrad/fledger-api:latest fledger-api:candidate
+          if docker pull ghcr.io/robconrad/fledger-api:latest 2>/dev/null; then
+            docker tag ghcr.io/robconrad/fledger-api:latest fledger-api:candidate
+            echo "built_from_source=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "GHCR image not found — will build API from source"
+            echo "built_from_source=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout API source (fallback build)
+        if: steps.pull-api.outputs.built_from_source == 'true'
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
+            /tmp/fledger-api
+
+      - name: Setup Java for fallback API build
+        if: steps.pull-api.outputs.built_from_source == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+          cache: sbt
+          cache-dependency-path: /tmp/fledger-api/project/build.properties
+
+      - name: Setup sbt for fallback API build
+        if: steps.pull-api.outputs.built_from_source == 'true'
+        uses: sbt/setup-sbt@v1
+
+      - name: Build API from source (fallback)
+        if: steps.pull-api.outputs.built_from_source == 'true'
+        working-directory: /tmp/fledger-api
+        run: |
+          sbt assembly
+          docker build --platform linux/amd64 -t fledger-api:candidate .
 
       # --- Build or pull Web image ---
       - name: Build Web candidate from PR
@@ -116,11 +149,42 @@ jobs:
           REACT_APP_API_GATEWAY_URL=http://localhost:8080 npm run build
           docker build --platform linux/amd64 -t fledger-web:candidate .
 
-      - name: Pull latest Web image
+      - name: Pull latest Web image (or build from source)
         if: steps.mode.outputs.source_repo != 'fledger-web' || steps.mode.outputs.mode != 'pr-gate'
+        id: pull-web
         run: |
-          docker pull ghcr.io/robconrad/fledger-web:latest
-          docker tag ghcr.io/robconrad/fledger-web:latest fledger-web:candidate
+          if docker pull ghcr.io/robconrad/fledger-web:latest 2>/dev/null; then
+            docker tag ghcr.io/robconrad/fledger-web:latest fledger-web:candidate
+            echo "built_from_source=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "GHCR image not found — will build Web from source"
+            echo "built_from_source=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout Web source (fallback build)
+        if: steps.pull-web.outputs.built_from_source == 'true'
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-web.git" \
+            /tmp/fledger-web
+
+      - name: Setup Node for fallback Web build
+        if: steps.pull-web.outputs.built_from_source == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: /tmp/fledger-web/package-lock.json
+
+      - name: Build Web from source (fallback)
+        if: steps.pull-web.outputs.built_from_source == 'true'
+        working-directory: /tmp/fledger-web
+        run: |
+          npm ci
+          REACT_APP_API_GATEWAY_URL=http://localhost:8080 \
+          REACT_APP_API_GATEWAY_GRAPHQL_PATH=graphql \
+          npm run build
+          docker build --platform linux/amd64 -t fledger-web:candidate .
 
       # --- Run stack ---
       - name: Start docker-compose stack

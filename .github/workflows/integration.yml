@@ -57,6 +57,10 @@ jobs:
           printf '{"auths":{"ghcr.io":{"auth":"%s"}},"credsStore":""}' "$AUTH" > "$DCFG/config.json"
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 
+      # --- Clean up /tmp from previous runs (self-hosted runner) ---
+      - name: Clean previous build artifacts
+        run: rm -rf /tmp/fledger-api /tmp/fledger-web
+
       # --- Build or pull API image ---
       - name: Build API candidate from PR
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
@@ -233,4 +237,6 @@ jobs:
       # --- Cleanup ---
       - name: Tear down stack
         if: always()
-        run: docker compose down -v
+        run: |
+          docker compose down -v
+          rm -rf /tmp/fledger-api /tmp/fledger-web

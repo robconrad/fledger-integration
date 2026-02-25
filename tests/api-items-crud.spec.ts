@@ -167,8 +167,8 @@ test.describe("Items CRUD via GraphQL", () => {
       data: {
         query: `mutation {
           update_item(
-            id: ${itemId}
             item: {
+              id: ${itemId}
               date: "${today}"
               amount: 9999
               comments: "integration-test-item-updated"

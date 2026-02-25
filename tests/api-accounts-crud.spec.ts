@@ -103,8 +103,8 @@ test.describe("Accounts CRUD via GraphQL", () => {
       data: {
         query: `mutation {
           update_account(
-            id: ${accountId}
             account: {
+              id: ${accountId}
               priority: 999
               name: "${updatedName}"
               account_group_id: ${accountGroupId}

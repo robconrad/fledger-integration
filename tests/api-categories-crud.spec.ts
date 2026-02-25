@@ -81,8 +81,8 @@ test.describe("Categories CRUD via GraphQL", () => {
       data: {
         query: `mutation {
           update_category(
-            id: ${categoryId}
             category: {
+              id: ${categoryId}
               name: "${updatedName}"
               category_group_id: ${categoryGroupId}
               is_transfer: false

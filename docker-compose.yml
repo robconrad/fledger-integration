@@ -18,7 +18,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      JAVA_TOOL_OPTIONS: -Ddb.host=postgres -Ddb.password=fledger-db
+      CONFIG_FILE: application.conf
+      JAVA_TOOL_OPTIONS: -Ddb.host=postgres
     ports:
       - "8080:8080"
     healthcheck:

@@ -21,9 +21,6 @@ on:
         type: string
         description: "PR head commit SHA for status reporting"
 
-  repository_dispatch:
-    types: [component-deployed]
-
   schedule:
     - cron: "0 6 * * 1" # Weekly Monday 6am UTC
 

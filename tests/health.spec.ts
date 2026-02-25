@@ -1,7 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-const API_URL = "http://localhost:8080";
-const WEB_URL = "http://localhost:3200";
+import { API_URL, WEB_URL } from "./support/api.js";
 
 test.describe("Health checks", () => {
   test("API returns OpenAPI spec", async ({ request }) => {

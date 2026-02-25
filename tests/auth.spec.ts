@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-const API_URL = "http://localhost:8080";
+import { API_URL, getAuthToken, graphql } from "./support/api.js";
 
 test.describe("Authentication", () => {
   test("POST /auth/token returns JWT", async ({ request }) => {
@@ -11,7 +10,7 @@ test.describe("Authentication", () => {
     const body = await response.json();
     expect(body).toHaveProperty("token");
     expect(typeof body.token).toBe("string");
-    expect(body.token.split(".")).toHaveLength(3); // JWT has 3 parts
+    expect(body.token.split(".")).toHaveLength(3);
   });
 
   test("invalid credentials return 401", async ({ request }) => {
@@ -29,18 +28,12 @@ test.describe("Authentication", () => {
   });
 
   test("GraphQL works with valid token", async ({ request }) => {
-    const authResponse = await request.post(`${API_URL}/auth/token`, {
-      data: { username: "fledger", password: "fledger-local" },
-    });
-    const { token } = await authResponse.json();
-
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { query: "{ accounts(inactive: false, size: 5) { id name } }" },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body).toHaveProperty("data");
-    expect(body.data).toHaveProperty("accounts");
+    const token = await getAuthToken(request);
+    const data = await graphql<{ accounts: Array<{ id: string; name: string }> }>(
+      request,
+      token,
+      "{ accounts(inactive: false, size: 5) { id name } }"
+    );
+    expect(data).toHaveProperty("accounts");
   });
 });

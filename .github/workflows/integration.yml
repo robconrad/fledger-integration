@@ -189,9 +189,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
       - name: Select test project
         id: test-project
         run: |
@@ -202,6 +199,27 @@ jobs:
           else
             echo "project=api-only" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Get Playwright version
+        if: steps.test-project.outputs.project == 'full'
+        id: pw-version
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        if: steps.test-project.outputs.project == 'full'
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+
+      - name: Install Playwright browsers
+        if: steps.test-project.outputs.project == 'full' && steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
+      - name: Install Playwright system deps
+        if: steps.test-project.outputs.project == 'full'
+        run: npx playwright install-deps chromium
 
       - name: Run integration tests
         run: npx playwright test --project="${{ steps.test-project.outputs.project }}"

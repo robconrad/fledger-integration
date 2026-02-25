@@ -7,38 +7,33 @@ test.describe("Chrome Extension: Authentication", () => {
   let context: BrowserContext;
   let extensionId: string;
   let cleanup: () => void;
-
-  let backgroundPage: Page;
+  let optionsPage: Page;
 
   test.beforeAll(async () => {
     const ext = await launchExtensionContext();
     context = ext.context;
     extensionId = ext.extensionId;
     cleanup = ext.cleanup;
-    // Keep a background page open so the persistent context stays alive
-    // when individual test pages are closed
-    backgroundPage = await context.newPage();
-    await backgroundPage.goto("about:blank");
+    // Create a single shared page for all tests — persistent contexts
+    // can auto-close when all pages are closed, so reuse one page
+    optionsPage = await context.newPage();
   });
 
   test.afterAll(async () => {
     try {
-      await backgroundPage?.close();
       await context?.close();
     } finally {
       cleanup?.();
     }
   });
 
-  async function openOptionsPage(): Promise<Page> {
-    const page = await context.newPage();
-    await page.goto(`chrome-extension://${extensionId}/src/options.html`);
-    await page.waitForLoadState("domcontentloaded");
-    return page;
+  async function navigateToOptions(): Promise<void> {
+    await optionsPage.goto(`chrome-extension://${extensionId}/src/options.html`);
+    await optionsPage.waitForLoadState("domcontentloaded");
   }
 
   test("extension options page loads", async () => {
-    const optionsPage = await openOptionsPage();
+    await navigateToOptions();
 
     // Verify the page rendered
     await expect(optionsPage.locator("h1")).toContainText("Fledger Importer");
@@ -46,12 +41,10 @@ test.describe("Chrome Extension: Authentication", () => {
     // Verify endpoint selector has dev option
     const select = optionsPage.locator("select[name='graphqlEndpoint']");
     await expect(select).toBeVisible();
-
-    await optionsPage.close();
   });
 
   test("login via extension options page", async () => {
-    const optionsPage = await openOptionsPage();
+    await navigateToOptions();
 
     // Fill auth credentials — the AuthSection has username and password inputs
     const usernameInput = optionsPage.locator("input").nth(0);
@@ -67,14 +60,11 @@ test.describe("Chrome Extension: Authentication", () => {
 
     // Logout button should now be visible
     await expect(optionsPage.getByRole("button", { name: "Logout" })).toBeVisible();
-
-    await optionsPage.close();
   });
 
   test("logout via extension options page", async () => {
     // Login first so we can test logout
-    const optionsPage = await openOptionsPage();
-    await optionsPage.waitForLoadState("networkidle");
+    await navigateToOptions();
     const usernameInput = optionsPage.locator("input").nth(0);
     const passwordInput = optionsPage.locator("input[type='password']");
     await usernameInput.fill("fledger");
@@ -87,7 +77,5 @@ test.describe("Chrome Extension: Authentication", () => {
 
     // Login button should reappear
     await expect(optionsPage.getByRole("button", { name: "Login" })).toBeVisible();
-
-    await optionsPage.close();
   });
 });

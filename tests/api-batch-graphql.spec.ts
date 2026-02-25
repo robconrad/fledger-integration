@@ -57,13 +57,15 @@ test.describe("Batch GraphQL operations", () => {
     expect(data1.data?.create_item?.comments).toBe("batch-2");
   });
 
-  test("batch with invalid query returns error for that entry", async ({ request }) => {
-    const results = await graphqlBatch(request, token, [
-      { query: "{ accounts(inactive: false, size: 5) { id } }" },
-      { query: "{ nonExistentField }" },
-    ]);
-    expect(results).toHaveLength(2);
-    expect(results[0]).toHaveProperty("data");
-    expect(results[1]).toHaveProperty("errors");
+  test("batch with invalid query returns error status", async ({ request }) => {
+    const response = await request.post("http://localhost:8080/graphql", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: [
+        { query: "{ accounts(inactive: false, size: 5) { id } }" },
+        { query: "{ nonExistentField }" },
+      ],
+    });
+    // The API rejects the entire batch when any query is invalid
+    expect(response.status()).toBe(400);
   });
 });

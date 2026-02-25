@@ -46,7 +46,7 @@ test.describe("Item filtering via GraphQL", () => {
     // Create items with different dates, amounts, accounts, categories
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 1000, date: "2025-01-15", comments: "filter-item-alpha", foreign_key: fk1 });
     await createItem(request, token, { account_id: accountId1, category_id: categoryId2, amount: 5000, date: "2025-06-15", comments: "filter-item-beta" });
-    await createItem(request, token, { account_id: accountId2, category_id: categoryId1, amount: 2000, date: "2025-03-01", comments: "filter-item-gamma", foreign_key: fk2 });
+    await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 2000, date: "2025-03-01", comments: "filter-item-gamma", foreign_key: fk2 });
     await createItem(request, token, { account_id: accountId2, category_id: categoryId2, amount: 8000, date: "2025-09-20", comments: "filter-item-delta" });
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 300, date: "2025-12-31", comments: "filter-item-epsilon" });
   });
@@ -106,7 +106,7 @@ test.describe("Item filtering via GraphQL", () => {
   test("filter by foreign_key", async ({ request }) => {
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `query($fk: String!) { items(item_filters: { foreign_key: $fk }, size: 100) { foreign_key } }`,
+      `query($fk: String!) { items(item_filters: { account_id: ${accountId1}, foreign_key: $fk }, size: 100) { foreign_key } }`,
       { fk: fk1 }
     );
     expect(data.items).toHaveLength(1);
@@ -116,7 +116,7 @@ test.describe("Item filtering via GraphQL", () => {
   test("filter by foreign_keys array", async ({ request }) => {
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `query($fks: [String!]!) { items(item_filters: { foreign_keys: $fks }, size: 100) { foreign_key } }`,
+      `query($fks: [String!]!) { items(item_filters: { account_id: ${accountId1}, foreign_keys: $fks }, size: 100) { foreign_key } }`,
       { fks: [fk1, fk2] }
     );
     expect(data.items).toHaveLength(2);

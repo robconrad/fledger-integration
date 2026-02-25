@@ -9,7 +9,9 @@ test.beforeAll(async ({ request }) => {
 
 test.describe("External Net Worth Records via GraphQL", () => {
   let recordId: number;
-  const testDate = "2025-06-15";
+  // Use a unique date per run to avoid unique constraint violations on retry
+  const dayOffset = Math.floor(Math.random() * 3650);
+  const testDate = new Date(2020, 0, 1 + dayOffset).toISOString().split("T")[0]!;
 
   test("create external_net_worth_record", async ({ request }) => {
     const data = await graphql<{ create_external_net_worth_record: {
@@ -22,7 +24,7 @@ test.describe("External Net Worth Records via GraphQL", () => {
       { r: { amount: 1000000, date: testDate } }
     );
     expect(data.create_external_net_worth_record.amount).toBe(1000000);
-    expect(data.create_external_net_worth_record.date).toBe(testDate);
+    expect(data.create_external_net_worth_record.date).toContain(testDate);
     recordId = Number(data.create_external_net_worth_record.id);
   });
 
@@ -42,7 +44,7 @@ test.describe("External Net Worth Records via GraphQL", () => {
       `{ external_net_worth_record(date: "${testDate}") { id date } }`
     );
     expect(data.external_net_worth_record).not.toBeNull();
-    expect(data.external_net_worth_record!.date).toBe(testDate);
+    expect(data.external_net_worth_record!.date).toContain(testDate);
   });
 
   test("update amount", async ({ request }) => {

@@ -15,16 +15,19 @@ export default defineConfig({
   projects: [
     {
       name: "api",
-      testMatch: /^(?!ui-|ext-).*\.spec\.ts$/,
+      testMatch: /(?:^|[/\\])(?!ui-|ext-)[^/\\]*\.spec\.ts$/,
     },
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-      testMatch: /^ui-.*\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1920, height: 1080 },
+      },
+      testMatch: /(?:^|[/\\])ui-.*\.spec\.ts$/,
     },
     {
       name: "extension",
-      testMatch: /^ext-.*\.spec\.ts$/,
+      testMatch: /(?:^|[/\\])ext-.*\.spec\.ts$/,
     },
   ],
 });

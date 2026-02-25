@@ -46,9 +46,9 @@ test.describe("Web UI: Accounts CRUD", () => {
     const row = page.locator("tbody tr", { hasText: accountName });
     await expect(row).toBeVisible();
 
-    // Update account
+    // Update account — dblclick the name cell to enter edit mode
     const updatedName = `${accountName}-upd`;
-    await row.locator("td").first().dblclick();
+    await row.locator("td", { hasText: accountName }).first().dblclick();
     const nameInput = row.locator("input[type='text']").first();
     await nameInput.clear();
     await nameInput.fill(updatedName);

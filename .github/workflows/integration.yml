@@ -51,17 +51,12 @@ jobs:
       - name: Build API candidate from PR
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
         run: |
-          git clone --depth 1 --branch "${{ inputs.pr_ref }}" \
+          git clone --depth 1 \
             "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
-            /tmp/fledger-api || {
-            # pr_ref as branch doesn't work — fetch the merge ref directly
-            git clone --depth 1 \
-              "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
-              /tmp/fledger-api
-            cd /tmp/fledger-api
-            git fetch origin "${{ inputs.pr_ref }}:pr-merge"
-            git checkout pr-merge
-          }
+            /tmp/fledger-api
+          cd /tmp/fledger-api
+          git fetch origin "${{ inputs.pr_ref }}:pr-merge"
+          git checkout pr-merge
 
       - name: Setup Java for API build
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
@@ -69,8 +64,6 @@ jobs:
         with:
           distribution: corretto
           java-version: 21
-          cache: sbt
-          cache-dependency-path: /tmp/fledger-api/project/build.properties
 
       - name: Setup sbt for API build
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
@@ -108,8 +101,6 @@ jobs:
         with:
           distribution: corretto
           java-version: 21
-          cache: sbt
-          cache-dependency-path: /tmp/fledger-api/project/build.properties
 
       - name: Setup sbt for fallback API build
         if: steps.pull-api.outputs.built_from_source == 'true'
@@ -138,8 +129,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: /tmp/fledger-web/package-lock.json
 
       - name: Build Web and Docker image
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-web'
@@ -173,8 +162,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: /tmp/fledger-web/package-lock.json
 
       - name: Build Web from source (fallback)
         if: steps.pull-web.outputs.built_from_source == 'true'

@@ -86,7 +86,7 @@ export async function triggerDeleteAndWait(
   operationName: string
 ): Promise<void> {
   const deleteIcon = row.getByAltText("delete");
-  const deleteRequest = waitForOperationRequest(page, operationName, 12_000);
+  const deleteDone = waitForOperationResponse(page, operationName);
   await deleteIcon.click({ force: true });
 
   const closeButton = page
@@ -97,5 +97,5 @@ export async function triggerDeleteAndWait(
     .then(() => closeButton.click({ force: true }))
     .catch(() => undefined);
 
-  await deleteRequest;
+  await deleteDone;
 }

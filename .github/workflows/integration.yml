@@ -1,0 +1,182 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options:
+          - pr-gate
+          - post-deploy
+      source_repo:
+        type: string
+        description: "Source repo (fledger-api or fledger-web)"
+      pr_ref:
+        type: string
+        description: "PR merge ref (e.g. refs/pull/N/merge)"
+      pr_sha:
+        type: string
+        description: "PR head commit SHA for status reporting"
+
+  repository_dispatch:
+    types: [component-deployed]
+
+  schedule:
+    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Determine mode ---
+      - name: Set mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+            echo "source_repo=${{ inputs.source_repo }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=post-deploy" >> "$GITHUB_OUTPUT"
+            echo "source_repo=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --- Login to GHCR ---
+      - name: Login to GHCR
+        run: echo "${{ secrets.INTEGRATION_PAT }}" | docker login ghcr.io -u robconrad --password-stdin
+
+      # --- Build or pull API image ---
+      - name: Build API candidate from PR
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
+        run: |
+          git clone --depth 1 --branch "${{ inputs.pr_ref }}" \
+            "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
+            /tmp/fledger-api || {
+            # pr_ref as branch doesn't work — fetch the merge ref directly
+            git clone --depth 1 \
+              "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-api.git" \
+              /tmp/fledger-api
+            cd /tmp/fledger-api
+            git fetch origin "${{ inputs.pr_ref }}:pr-merge"
+            git checkout pr-merge
+          }
+
+      - name: Setup Java for API build
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 21
+          cache: sbt
+          cache-dependency-path: /tmp/fledger-api/project/build.properties
+
+      - name: Build API JAR and Docker image
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
+        working-directory: /tmp/fledger-api
+        run: |
+          sbt assembly
+          docker build --platform linux/amd64 -t fledger-api:candidate .
+
+      - name: Pull latest API image
+        if: steps.mode.outputs.source_repo != 'fledger-api' || steps.mode.outputs.mode != 'pr-gate'
+        run: |
+          docker pull ghcr.io/robconrad/fledger-api:latest
+          docker tag ghcr.io/robconrad/fledger-api:latest fledger-api:candidate
+
+      # --- Build or pull Web image ---
+      - name: Build Web candidate from PR
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-web'
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-web.git" \
+            /tmp/fledger-web
+          cd /tmp/fledger-web
+          git fetch origin "${{ inputs.pr_ref }}:pr-merge"
+          git checkout pr-merge
+
+      - name: Setup Node for Web build
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-web'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: /tmp/fledger-web/package-lock.json
+
+      - name: Build Web and Docker image
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-web'
+        working-directory: /tmp/fledger-web
+        run: |
+          npm ci
+          REACT_APP_API_GATEWAY_URL=http://localhost:8080 npm run build
+          docker build --platform linux/amd64 -t fledger-web:candidate .
+
+      - name: Pull latest Web image
+        if: steps.mode.outputs.source_repo != 'fledger-web' || steps.mode.outputs.mode != 'pr-gate'
+        run: |
+          docker pull ghcr.io/robconrad/fledger-web:latest
+          docker tag ghcr.io/robconrad/fledger-web:latest fledger-web:candidate
+
+      # --- Run stack ---
+      - name: Start docker-compose stack
+        run: |
+          docker compose up -d --wait --wait-timeout 120
+        env:
+          API_IMAGE: fledger-api:candidate
+          WEB_IMAGE: fledger-web:candidate
+
+      # --- Run tests ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Select test project
+        id: test-project
+        run: |
+          # API PR gate and post-deploy/scheduled: run API-only tests
+          # Web PR gate: run full tests (UI + API)
+          if [ "${{ steps.mode.outputs.mode }}" = "pr-gate" ] && [ "${{ steps.mode.outputs.source_repo }}" = "fledger-web" ]; then
+            echo "project=full" >> "$GITHUB_OUTPUT"
+          else
+            echo "project=api-only" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run integration tests
+        run: npx playwright test --project="${{ steps.test-project.outputs.project }}"
+        env:
+          CI: "true"
+
+      # --- Report back to PR ---
+      - name: Report success to PR
+        if: success() && inputs.mode == 'pr-gate'
+        run: |
+          gh api "repos/robconrad/${{ inputs.source_repo }}/statuses/${{ inputs.pr_sha }}" \
+            -f state=success \
+            -f context=integration-tests \
+            -f description="Cross-repo integration tests passed" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.INTEGRATION_PAT }}
+
+      - name: Report failure to PR
+        if: failure() && inputs.mode == 'pr-gate'
+        run: |
+          gh api "repos/robconrad/${{ inputs.source_repo }}/statuses/${{ inputs.pr_sha }}" \
+            -f state=failure \
+            -f context=integration-tests \
+            -f description="Cross-repo integration tests failed" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.INTEGRATION_PAT }}
+
+      # --- Cleanup ---
+      - name: Tear down stack
+        if: always()
+        run: docker compose down -v

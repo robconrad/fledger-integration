@@ -72,7 +72,6 @@ test.describe("Transfer Items via GraphQL", () => {
     );
     expect(data.create_transfer_item).toHaveLength(2);
     const items = data.create_transfer_item;
-    // Both items share the same transfer record
     expect(items[0]!.transfer.from_account_id).toBe(fromAccountId);
     expect(items[0]!.transfer.to_account_id).toBe(toAccountId);
     fromItemId = items[0]!.transfer.from_id;
@@ -80,14 +79,16 @@ test.describe("Transfer Items via GraphQL", () => {
   });
 
   test("read transfer items on from-account", async ({ request }) => {
+    expect(fromItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{
       items: Array<{ id: string; transfer: { from_id: number; to_id: number } | null }>;
     }>(
       request,
       token,
-      `{ items(item_filters: { account_id: ${fromAccountId} }, size: 100) {
+      `query($accId: Int!) { items(item_filters: { account_id: $accId }, size: 100) {
         id transfer { from_id to_id }
-      }}`
+      }}`,
+      { accId: fromAccountId }
     );
     const found = data.items.find((i) => Number(i.id) === fromItemId);
     expect(found).toBeDefined();
@@ -95,14 +96,16 @@ test.describe("Transfer Items via GraphQL", () => {
   });
 
   test("read transfer items on to-account", async ({ request }) => {
+    expect(toItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{
       items: Array<{ id: string; transfer: { from_id: number; to_id: number } | null }>;
     }>(
       request,
       token,
-      `{ items(item_filters: { account_id: ${toAccountId} }, size: 100) {
+      `query($accId: Int!) { items(item_filters: { account_id: $accId }, size: 100) {
         id transfer { from_id to_id }
-      }}`
+      }}`,
+      { accId: toAccountId }
     );
     const found = data.items.find((i) => Number(i.id) === toItemId);
     expect(found).toBeDefined();
@@ -110,6 +113,7 @@ test.describe("Transfer Items via GraphQL", () => {
   });
 
   test("update transfer item", async ({ request }) => {
+    expect(fromItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ update_transfer_item: Array<{
       id: string; amount: number; comments: string;
     }> }>(
@@ -134,10 +138,12 @@ test.describe("Transfer Items via GraphQL", () => {
   });
 
   test("delete from-item cascades", async ({ request }) => {
+    expect(fromItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_item: boolean }>(
       request,
       token,
-      `mutation { delete_item(id: ${fromItemId}) }`
+      `mutation($id: Int!) { delete_item(id: $id) }`,
+      { id: fromItemId }
     );
     expect(data.delete_item).toBe(true);
 
@@ -145,7 +151,8 @@ test.describe("Transfer Items via GraphQL", () => {
     const check = await graphql<{ item: null | { id: string } }>(
       request,
       token,
-      `{ item(id: ${toItemId}) { id } }`
+      `query($id: Int!) { item(id: $id) { id } }`,
+      { id: toItemId }
     );
     expect(check.item).toBeNull();
   });

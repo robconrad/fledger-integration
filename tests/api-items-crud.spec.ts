@@ -60,12 +60,14 @@ test.describe("Items CRUD via GraphQL", () => {
   });
 
   test("read items", async ({ request }) => {
+    expect(itemId, "create test must pass first").toBeDefined();
     const data = await graphql<{
       items: Array<{ id: string; date: string; amount: number; comments: string }>;
     }>(
       request,
       token,
-      `{ items(item_filters: { account_id: ${accountId} }, size: 100) { id date amount comments } }`
+      `query($accId: Int!) { items(item_filters: { account_id: $accId }, size: 100) { id date amount comments } }`,
+      { accId: accountId }
     );
     const found = data.items.find((i) => Number(i.id) === itemId);
     expect(found).toBeDefined();
@@ -73,6 +75,7 @@ test.describe("Items CRUD via GraphQL", () => {
   });
 
   test("update item", async ({ request }) => {
+    expect(itemId, "create test must pass first").toBeDefined();
     const data = await graphql<{
       update_item: { id: string; amount: number; comments: string };
     }>(
@@ -97,10 +100,12 @@ test.describe("Items CRUD via GraphQL", () => {
   });
 
   test("delete item", async ({ request }) => {
+    expect(itemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_item: boolean }>(
       request,
       token,
-      `mutation { delete_item(id: ${itemId}) }`
+      `mutation($id: Int!) { delete_item(id: $id) }`,
+      { id: itemId }
     );
     expect(data.delete_item).toBe(true);
   });

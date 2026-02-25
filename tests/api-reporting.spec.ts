@@ -53,9 +53,11 @@ test.describe("Reporting: Slices, Aggregates, Normalization", () => {
   });
 
   test("item_aggregate returns amount totals", async ({ request }) => {
+    expect(accountId, "setup test must pass first").toBeDefined();
     const data = await graphql<{ item_aggregate: { amount: number; amount_in: number; amount_out: number } }>(
       request, token,
-      `{ item_aggregate(item_filters: { account_id: ${accountId} }) { amount amount_in amount_out } }`
+      `query($accId: Int!) { item_aggregate(item_filters: { account_id: $accId }) { amount amount_in amount_out } }`,
+      { accId: accountId }
     );
     expect(typeof data.item_aggregate.amount).toBe("number");
     expect(typeof data.item_aggregate.amount_in).toBe("number");

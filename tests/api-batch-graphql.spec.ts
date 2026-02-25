@@ -39,6 +39,7 @@ test.describe("Batch GraphQL operations", () => {
   });
 
   test("batch mutations create multiple items", async ({ request }) => {
+    expect(accountId, "setup test must pass first").toBeDefined();
     const today = new Date().toISOString().split("T")[0]!;
     const results = await graphqlBatch(request, token, [
       {
@@ -67,5 +68,9 @@ test.describe("Batch GraphQL operations", () => {
     });
     // The API rejects the entire batch when any query is invalid
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    // Response should indicate the invalid field
+    const bodyStr = JSON.stringify(body);
+    expect(bodyStr).toContain("nonExistentField");
   });
 });

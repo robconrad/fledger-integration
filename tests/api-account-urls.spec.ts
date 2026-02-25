@@ -42,6 +42,7 @@ test.describe("Account URLs via GraphQL", () => {
   });
 
   test("query account_url by URL", async ({ request }) => {
+    expect(accountUrlId, "create test must pass first").toBeDefined();
     const data = await graphql<{ account_url: { id: string; url: string } | null }>(
       request, token,
       `query($url: String!) { account_url(url: $url) { id url } }`,
@@ -52,6 +53,7 @@ test.describe("Account URLs via GraphQL", () => {
   });
 
   test("query account_urls list", async ({ request }) => {
+    expect(accountUrlId, "create test must pass first").toBeDefined();
     const data = await graphql<{ account_urls: Array<{ id: string; url: string }> }>(
       request, token,
       `{ account_urls(size: 200) { id url } }`
@@ -61,6 +63,7 @@ test.describe("Account URLs via GraphQL", () => {
   });
 
   test("update account_url with transaction_dom_config", async ({ request }) => {
+    expect(accountUrlId, "create test must pass first").toBeDefined();
     const domConfig = {
       version: "1",
       rowSelector: "tr.row",
@@ -83,9 +86,11 @@ test.describe("Account URLs via GraphQL", () => {
   });
 
   test("delete account_url", async ({ request }) => {
+    expect(accountUrlId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_account_url: boolean }>(
       request, token,
-      `mutation { delete_account_url(id: ${accountUrlId}) }`
+      `mutation($id: Int!) { delete_account_url(id: $id) }`,
+      { id: accountUrlId }
     );
     expect(data.delete_account_url).toBe(true);
   });

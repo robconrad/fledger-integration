@@ -6,7 +6,6 @@ import {
   createAccount,
   createCategoryGroup,
   createCategory,
-  uniqueSuffix,
 } from "./support/factories.js";
 
 let token: string;
@@ -56,6 +55,7 @@ test.describe("Provisional Items via GraphQL", () => {
   });
 
   test("query provisional items list", async ({ request }) => {
+    expect(provisionalItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ provisional_items: Array<{ id: string; foreign_key: string }> }>(
       request, token,
       `{ provisional_items(size: 200) { id foreign_key } }`
@@ -66,6 +66,7 @@ test.describe("Provisional Items via GraphQL", () => {
   });
 
   test("query by foreign_keys filter", async ({ request }) => {
+    expect(provisionalItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ provisional_items: Array<{ id: string; foreign_key: string }> }>(
       request, token,
       `query($fks: [String!]!) { provisional_items(provisional_item_filters: { foreign_keys: $fks }, size: 100) { id foreign_key } }`,
@@ -98,9 +99,11 @@ test.describe("Provisional Items via GraphQL", () => {
   });
 
   test("delete provisional item", async ({ request }) => {
+    expect(provisionalItemId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_provisional_item: boolean }>(
       request, token,
-      `mutation { delete_provisional_item(id: ${provisionalItemId}) }`
+      `mutation($id: Int!) { delete_provisional_item(id: $id) }`,
+      { id: provisionalItemId }
     );
     expect(data.delete_provisional_item).toBe(true);
   });

@@ -1,4 +1,4 @@
-import { expect, type Page, type Locator, type Request, type APIRequestContext } from "@playwright/test";
+import { expect, type Page, type Locator, type APIRequestContext } from "@playwright/test";
 import { getAuthToken, WEB_URL } from "./api.js";
 
 export async function loginViaUI(page: Page): Promise<void> {
@@ -15,32 +15,15 @@ export async function loginViaAPI(
 ): Promise<void> {
   const token = await getAuthToken(request);
   await page.goto(WEB_URL);
+  // Keys must match fledger-web's auth storage convention
   await page.evaluate((t) => {
     window.localStorage.setItem("fledgerAuthToken", t);
-    // Set expiry far in the future
     window.localStorage.setItem(
       "fledgerAuthTokenExpiresAt",
       String(Date.now() + 3600_000)
     );
   }, token);
   await page.reload();
-}
-
-export function waitForOperationRequest(
-  page: Page,
-  operationName: string,
-  timeout = 10_000
-): Promise<Request> {
-  return page.waitForRequest(
-    (request) => {
-      if (!request.url().includes("/graphql") || request.method() !== "POST") {
-        return false;
-      }
-      const body = request.postData() || "";
-      return body.includes(`"operationName":"${operationName}"`);
-    },
-    { timeout }
-  );
 }
 
 export async function waitForOperationResponse(
@@ -92,6 +75,7 @@ export async function triggerDeleteAndWait(
   const closeButton = page
     .locator(".Toastify__toast .Toastify__close-button")
     .last();
+  // Toast may not always appear; safe to ignore if absent
   await closeButton
     .waitFor({ state: "visible", timeout: 2000 })
     .then(() => closeButton.click({ force: true }))

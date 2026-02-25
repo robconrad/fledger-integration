@@ -39,6 +39,7 @@ test.describe("Categories CRUD via GraphQL", () => {
   });
 
   test("read categories", async ({ request }) => {
+    expect(categoryId, "create test must pass first").toBeDefined();
     const data = await graphql<{ categories: Array<{ id: string; name: string }> }>(
       request,
       token,
@@ -50,6 +51,7 @@ test.describe("Categories CRUD via GraphQL", () => {
   });
 
   test("update category", async ({ request }) => {
+    expect(categoryId, "create test must pass first").toBeDefined();
     const updatedName = `${uniqueName}-updated`;
     const data = await graphql<{ update_category: { id: string; name: string } }>(
       request,
@@ -71,10 +73,12 @@ test.describe("Categories CRUD via GraphQL", () => {
   });
 
   test("delete category", async ({ request }) => {
+    expect(categoryId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_category: boolean }>(
       request,
       token,
-      `mutation { delete_category(id: ${categoryId}) }`
+      `mutation($id: Int!) { delete_category(id: $id) }`,
+      { id: categoryId }
     );
     expect(data.delete_category).toBe(true);
   });

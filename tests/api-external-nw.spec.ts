@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getAuthToken, graphql } from "./support/api.js";
+import { uniqueSuffix } from "./support/factories.js";
 
 let token: string;
 
@@ -10,7 +11,8 @@ test.beforeAll(async ({ request }) => {
 test.describe("External Net Worth Records via GraphQL", () => {
   let recordId: number;
   // Use a unique date per run to avoid unique constraint violations on retry
-  const dayOffset = Math.floor(Math.random() * 3650);
+  const suffix = uniqueSuffix();
+  const dayOffset = parseInt(suffix.slice(-6), 16) % 3650;
   const testDate = new Date(2020, 0, 1 + dayOffset).toISOString().split("T")[0]!;
 
   test("create external_net_worth_record", async ({ request }) => {
@@ -24,11 +26,12 @@ test.describe("External Net Worth Records via GraphQL", () => {
       { r: { amount: 1000000, date: testDate } }
     );
     expect(data.create_external_net_worth_record.amount).toBe(1000000);
-    expect(data.create_external_net_worth_record.date).toContain(testDate);
+    expect(data.create_external_net_worth_record.date.startsWith(testDate)).toBe(true);
     recordId = Number(data.create_external_net_worth_record.id);
   });
 
   test("query external_net_worth_records list", async ({ request }) => {
+    expect(recordId, "create test must pass first").toBeDefined();
     const data = await graphql<{ external_net_worth_records: Array<{ id: string; amount: number; date: string }> }>(
       request, token,
       `{ external_net_worth_records(size: 200) { id amount date } }`
@@ -39,15 +42,18 @@ test.describe("External Net Worth Records via GraphQL", () => {
   });
 
   test("query by date", async ({ request }) => {
+    expect(recordId, "create test must pass first").toBeDefined();
     const data = await graphql<{ external_net_worth_record: { id: string; date: string } | null }>(
       request, token,
-      `{ external_net_worth_record(date: "${testDate}") { id date } }`
+      `query($date: Date!) { external_net_worth_record(date: $date) { id date } }`,
+      { date: testDate }
     );
     expect(data.external_net_worth_record).not.toBeNull();
-    expect(data.external_net_worth_record!.date).toContain(testDate);
+    expect(data.external_net_worth_record!.date.startsWith(testDate)).toBe(true);
   });
 
   test("update amount", async ({ request }) => {
+    expect(recordId, "create test must pass first").toBeDefined();
     const data = await graphql<{ update_external_net_worth_record: { id: string; amount: number } }>(
       request, token,
       `mutation($r: ExternalNetWorthRecordUpdate!) {
@@ -59,9 +65,11 @@ test.describe("External Net Worth Records via GraphQL", () => {
   });
 
   test("delete external_net_worth_record", async ({ request }) => {
+    expect(recordId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_external_net_worth_record: boolean }>(
       request, token,
-      `mutation { delete_external_net_worth_record(id: ${recordId}) }`
+      `mutation($id: Int!) { delete_external_net_worth_record(id: $id) }`,
+      { id: recordId }
     );
     expect(data.delete_external_net_worth_record).toBe(true);
   });

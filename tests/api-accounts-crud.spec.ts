@@ -43,6 +43,7 @@ test.describe("Accounts CRUD via GraphQL", () => {
   });
 
   test("read account", async ({ request }) => {
+    expect(accountId, "create test must pass first").toBeDefined();
     const data = await graphql<{ accounts: Array<{ id: string; name: string }> }>(
       request,
       token,
@@ -54,6 +55,7 @@ test.describe("Accounts CRUD via GraphQL", () => {
   });
 
   test("update account", async ({ request }) => {
+    expect(accountId, "create test must pass first").toBeDefined();
     const updatedName = `${uniqueName}-updated`;
     const data = await graphql<{ update_account: { id: string; name: string } }>(
       request,
@@ -76,10 +78,12 @@ test.describe("Accounts CRUD via GraphQL", () => {
   });
 
   test("delete account", async ({ request }) => {
+    expect(accountId, "create test must pass first").toBeDefined();
     const data = await graphql<{ delete_account: boolean }>(
       request,
       token,
-      `mutation { delete_account(id: ${accountId}) }`
+      `mutation($id: Int!) { delete_account(id: $id) }`,
+      { id: accountId }
     );
     expect(data.delete_account).toBe(true);
   });

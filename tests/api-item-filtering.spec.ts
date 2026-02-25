@@ -7,7 +7,6 @@ import {
   createCategoryGroup,
   createCategory,
   createItem,
-  uniqueSuffix,
 } from "./support/factories.js";
 
 let token: string;
@@ -52,9 +51,11 @@ test.describe("Item filtering via GraphQL", () => {
   });
 
   test("filter by date_min and date_max", async ({ request }) => {
+    expect(accountId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ date: string; comments: string }> }>(
       request, token,
-      `{ items(item_filters: { account_id: ${accountId1}, date_min: "2025-03-01", date_max: "2025-09-30" }, size: 100) { date comments } }`
+      `query($accId: Int!) { items(item_filters: { account_id: $accId, date_min: "2025-03-01", date_max: "2025-09-30" }, size: 100) { date comments } }`,
+      { accId: accountId1 }
     );
     expect(data.items.length).toBeGreaterThanOrEqual(1);
     for (const item of data.items) {
@@ -64,9 +65,11 @@ test.describe("Item filtering via GraphQL", () => {
   });
 
   test("filter by amount_min and amount_max", async ({ request }) => {
+    expect(accountId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ amount: number; comments: string }> }>(
       request, token,
-      `{ items(item_filters: { account_id: ${accountId1}, amount_min: 500, amount_max: 6000 }, size: 100) { amount comments } }`
+      `query($accId: Int!) { items(item_filters: { account_id: $accId, amount_min: 500, amount_max: 6000 }, size: 100) { amount comments } }`,
+      { accId: accountId1 }
     );
     expect(data.items.length).toBeGreaterThanOrEqual(1);
     for (const item of data.items) {
@@ -76,9 +79,11 @@ test.describe("Item filtering via GraphQL", () => {
   });
 
   test("filter by category_id", async ({ request }) => {
+    expect(accountId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ id: string; category: { id: string } | null }> }>(
       request, token,
-      `{ items(item_filters: { account_id: ${accountId1}, category_id: ${categoryId1} }, size: 100) { id category { id } } }`
+      `query($accId: Int!, $catId: Int!) { items(item_filters: { account_id: $accId, category_id: $catId }, size: 100) { id category { id } } }`,
+      { accId: accountId1, catId: categoryId1 }
     );
     expect(data.items.length).toBeGreaterThanOrEqual(1);
     for (const item of data.items) {
@@ -87,9 +92,11 @@ test.describe("Item filtering via GraphQL", () => {
   });
 
   test("filter by category_group_id", async ({ request }) => {
+    expect(categoryGroupId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ id: string }> }>(
       request, token,
-      `{ items(item_filters: { category_group_id: ${categoryGroupId1} }, size: 100) { id } }`
+      `query($cgId: Int!) { items(item_filters: { category_group_id: $cgId }, size: 100) { id } }`,
+      { cgId: categoryGroupId1 }
     );
     expect(data.items.length).toBeGreaterThanOrEqual(1);
   });
@@ -104,20 +111,22 @@ test.describe("Item filtering via GraphQL", () => {
   });
 
   test("filter by foreign_key", async ({ request }) => {
+    expect(accountId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `query($fk: String!) { items(item_filters: { account_id: ${accountId1}, foreign_key: $fk }, size: 100) { foreign_key } }`,
-      { fk: fk1 }
+      `query($accId: Int!, $fk: String!) { items(item_filters: { account_id: $accId, foreign_key: $fk }, size: 100) { foreign_key } }`,
+      { accId: accountId1, fk: fk1 }
     );
     expect(data.items).toHaveLength(1);
     expect(data.items[0]!.foreign_key).toBe(fk1);
   });
 
   test("filter by foreign_keys array", async ({ request }) => {
+    expect(accountId1, "setup test must pass first").toBeDefined();
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `query($fks: [String!]!) { items(item_filters: { account_id: ${accountId1}, foreign_keys: $fks }, size: 100) { foreign_key } }`,
-      { fks: [fk1, fk2] }
+      `query($accId: Int!, $fks: [String!]!) { items(item_filters: { account_id: $accId, foreign_keys: $fks }, size: 100) { foreign_key } }`,
+      { accId: accountId1, fks: [fk1, fk2] }
     );
     expect(data.items).toHaveLength(2);
     const keys = data.items.map((i) => i.foreign_key);

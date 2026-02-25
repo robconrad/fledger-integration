@@ -26,8 +26,8 @@ on:
 
 jobs:
   integration:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: [self-hosted, macOS, deploy]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -185,44 +185,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - run: npm ci
 
-      - name: Select test project
-        id: test-project
-        run: |
-          # API PR gate and post-deploy/scheduled: run API-only tests
-          # Web PR gate: run full tests (UI + API)
-          if [ "${{ steps.mode.outputs.mode }}" = "pr-gate" ] && [ "${{ steps.mode.outputs.source_repo }}" = "fledger-web" ]; then
-            echo "project=full" >> "$GITHUB_OUTPUT"
-          else
-            echo "project=api-only" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Get Playwright version
-        if: steps.test-project.outputs.project == 'full'
-        id: pw-version
-        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        if: steps.test-project.outputs.project == 'full'
-        id: pw-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
-
+      # Browsers persist on self-hosted runner — only downloads on first run
       - name: Install Playwright browsers
-        if: steps.test-project.outputs.project == 'full' && steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
 
-      - name: Install Playwright system deps
-        if: steps.test-project.outputs.project == 'full'
-        run: npx playwright install-deps chromium
-
       - name: Run integration tests
-        run: npx playwright test --project="${{ steps.test-project.outputs.project }}"
+        run: npx playwright test
         env:
           CI: "true"
 

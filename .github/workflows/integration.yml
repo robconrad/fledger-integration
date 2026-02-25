@@ -72,6 +72,10 @@ jobs:
           cache: sbt
           cache-dependency-path: /tmp/fledger-api/project/build.properties
 
+      - name: Setup sbt for API build
+        if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
+        uses: sbt/setup-sbt@v1
+
       - name: Build API JAR and Docker image
         if: steps.mode.outputs.mode == 'pr-gate' && steps.mode.outputs.source_repo == 'fledger-api'
         working-directory: /tmp/fledger-api

@@ -15,6 +15,26 @@ test.beforeAll(async ({ request }) => {
 test.describe("Categories CRUD via GraphQL", () => {
   const uniqueName = `test-category-${Date.now()}`;
   let categoryId: number;
+  let categoryGroupId: number;
+
+  test("setup: create category_group", async ({ request }) => {
+    const response = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_category_group(
+            category_group: {
+              name: "test-catgroup-${Date.now()}"
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    categoryGroupId = Number(body.data.create_category_group.id);
+  });
 
   test("create category", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
@@ -24,7 +44,7 @@ test.describe("Categories CRUD via GraphQL", () => {
           create_category(
             category: {
               name: "${uniqueName}"
-              category_group_id: 1
+              category_group_id: ${categoryGroupId}
               is_transfer: false
               inactive: false
             }
@@ -64,7 +84,7 @@ test.describe("Categories CRUD via GraphQL", () => {
             id: ${categoryId}
             category: {
               name: "${updatedName}"
-              category_group_id: 1
+              category_group_id: ${categoryGroupId}
               is_transfer: false
               inactive: false
             }

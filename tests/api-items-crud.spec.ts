@@ -15,10 +15,106 @@ test.beforeAll(async ({ request }) => {
 test.describe("Items CRUD via GraphQL", () => {
   const today = new Date().toISOString().split("T")[0]!; // YYYY-MM-DD
   let itemId: number;
+  let accountId: number;
+  let categoryId: number;
 
-  // Items require a valid account and category — use ID 1 (seeded by migrations)
-  const accountId = 1;
-  const categoryId = 1;
+  test("setup: create prerequisite entities", async ({ request }) => {
+    // Create account group
+    const agResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_account_group(
+            account_group: {
+              name: "items-test-group-${Date.now()}"
+              is_retirement: false
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(agResponse.status()).toBe(200);
+    const agBody = await agResponse.json();
+    const accountGroupId = Number(agBody.data.create_account_group.id);
+
+    // Create account type
+    const atResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_account_type(
+            account_type: {
+              name: "items-test-type-${Date.now()}"
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(atResponse.status()).toBe(200);
+    const atBody = await atResponse.json();
+    const accountTypeId = Number(atBody.data.create_account_type.id);
+
+    // Create account
+    const accResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_account(
+            account: {
+              priority: 999
+              name: "items-test-account-${Date.now()}"
+              account_group_id: ${accountGroupId}
+              account_type_id: ${accountTypeId}
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(accResponse.status()).toBe(200);
+    const accBody = await accResponse.json();
+    accountId = Number(accBody.data.create_account.id);
+
+    // Create category group
+    const cgResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_category_group(
+            category_group: {
+              name: "items-test-catgroup-${Date.now()}"
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(cgResponse.status()).toBe(200);
+    const cgBody = await cgResponse.json();
+    const categoryGroupId = Number(cgBody.data.create_category_group.id);
+
+    // Create category
+    const catResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_category(
+            category: {
+              name: "items-test-category-${Date.now()}"
+              category_group_id: ${categoryGroupId}
+              is_transfer: false
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(catResponse.status()).toBe(200);
+    const catBody = await catResponse.json();
+    categoryId = Number(catBody.data.create_category.id);
+  });
 
   test("create item", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
@@ -85,7 +181,9 @@ test.describe("Items CRUD via GraphQL", () => {
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.data.update_item.comments).toBe("integration-test-item-updated");
+    expect(body.data.update_item.comments).toBe(
+      "integration-test-item-updated"
+    );
     expect(body.data.update_item.amount).toBe(9999);
   });
 

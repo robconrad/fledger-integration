@@ -15,6 +15,47 @@ test.beforeAll(async ({ request }) => {
 test.describe("Accounts CRUD via GraphQL", () => {
   const uniqueName = `test-account-${Date.now()}`;
   let accountId: number;
+  let accountGroupId: number;
+  let accountTypeId: number;
+
+  test("setup: create account_group and account_type", async ({ request }) => {
+    // Create account group
+    const agResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_account_group(
+            account_group: {
+              name: "test-group-${Date.now()}"
+              is_retirement: false
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(agResponse.status()).toBe(200);
+    const agBody = await agResponse.json();
+    accountGroupId = Number(agBody.data.create_account_group.id);
+
+    // Create account type
+    const atResponse = await request.post(`${API_URL}/graphql`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        query: `mutation {
+          create_account_type(
+            account_type: {
+              name: "test-type-${Date.now()}"
+              inactive: false
+            }
+          ) { id }
+        }`,
+      },
+    });
+    expect(atResponse.status()).toBe(200);
+    const atBody = await atResponse.json();
+    accountTypeId = Number(atBody.data.create_account_type.id);
+  });
 
   test("create account", async ({ request }) => {
     const response = await request.post(`${API_URL}/graphql`, {
@@ -25,8 +66,8 @@ test.describe("Accounts CRUD via GraphQL", () => {
             account: {
               priority: 999
               name: "${uniqueName}"
-              account_group_id: 1
-              account_type_id: 1
+              account_group_id: ${accountGroupId}
+              account_type_id: ${accountTypeId}
               inactive: false
             }
           ) { id name }
@@ -66,8 +107,8 @@ test.describe("Accounts CRUD via GraphQL", () => {
             account: {
               priority: 999
               name: "${updatedName}"
-              account_group_id: 1
-              account_type_id: 1
+              account_group_id: ${accountGroupId}
+              account_type_id: ${accountTypeId}
               inactive: false
             }
           ) { id name }

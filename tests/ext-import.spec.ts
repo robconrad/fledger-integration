@@ -53,8 +53,11 @@ test.describe("Chrome Extension: Import workflow", () => {
   });
 
   test.afterAll(async () => {
-    await context?.close();
-    cleanup?.();
+    try {
+      await context?.close();
+    } finally {
+      cleanup?.();
+    }
   });
 
   test("bootstrap returns accounts from API", async () => {

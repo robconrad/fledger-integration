@@ -16,8 +16,11 @@ test.describe("Chrome Extension: Authentication", () => {
   });
 
   test.afterAll(async () => {
-    await context?.close();
-    cleanup?.();
+    try {
+      await context?.close();
+    } finally {
+      cleanup?.();
+    }
   });
 
   async function openOptionsPage(): Promise<Page> {

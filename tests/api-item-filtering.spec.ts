@@ -19,7 +19,6 @@ test.describe("Item filtering via GraphQL", () => {
   let accountId1: number;
   let accountId2: number;
   let categoryId1: number;
-  let categoryId2: number;
   let categoryGroupId1: number;
   let categoryGroupId2: number;
   const fk1 = `fk-filter-${Date.now()}-a`;
@@ -40,13 +39,12 @@ test.describe("Item filtering via GraphQL", () => {
     const cat1 = await createCategory(request, token, { category_group_id: cg1.id });
     const cat2 = await createCategory(request, token, { category_group_id: cg2.id });
     categoryId1 = cat1.id;
-    categoryId2 = cat2.id;
 
     // Create items with different dates, amounts, accounts, categories
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 1000, date: "2025-01-15", comments: "filter-item-alpha", foreign_key: fk1 });
-    await createItem(request, token, { account_id: accountId1, category_id: categoryId2, amount: 5000, date: "2025-06-15", comments: "filter-item-beta" });
+    await createItem(request, token, { account_id: accountId1, category_id: cat2.id, amount: 5000, date: "2025-06-15", comments: "filter-item-beta" });
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 2000, date: "2025-03-01", comments: "filter-item-gamma", foreign_key: fk2 });
-    await createItem(request, token, { account_id: accountId2, category_id: categoryId2, amount: 8000, date: "2025-09-20", comments: "filter-item-delta" });
+    await createItem(request, token, { account_id: accountId2, category_id: cat2.id, amount: 8000, date: "2025-09-20", comments: "filter-item-delta" });
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 300, date: "2025-12-31", comments: "filter-item-epsilon" });
   });
 
@@ -99,6 +97,31 @@ test.describe("Item filtering via GraphQL", () => {
       { cgId: categoryGroupId1 }
     );
     expect(data.items.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("filter by account_id excludes other accounts", async ({ request }) => {
+    expect(accountId2, "setup test must pass first").toBeDefined();
+    const data = await graphql<{ items: Array<{ comments: string }> }>(
+      request, token,
+      `query($accId: Int!) { items(item_filters: { account_id: $accId }, size: 100) { comments } }`,
+      { accId: accountId2 }
+    );
+    // accountId2 has only one item: "filter-item-delta"
+    const comments = data.items.map((i) => i.comments);
+    expect(comments).toContain("filter-item-delta");
+    expect(comments).not.toContain("filter-item-alpha");
+  });
+
+  test("filter by category_group_id excludes other groups", async ({ request }) => {
+    expect(categoryGroupId2, "setup test must pass first").toBeDefined();
+    const data = await graphql<{ items: Array<{ comments: string }> }>(
+      request, token,
+      `query($cgId: Int!) { items(item_filters: { category_group_id: $cgId }, size: 100) { comments } }`,
+      { cgId: categoryGroupId2 }
+    );
+    // categoryGroupId2 items: "filter-item-beta" and "filter-item-delta"
+    const comments = data.items.map((i) => i.comments);
+    expect(comments).not.toContain("filter-item-alpha");
   });
 
   test("filter by comments partial match", async ({ request }) => {

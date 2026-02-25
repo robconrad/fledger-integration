@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { getAuthToken, graphql, graphqlBatch } from "./support/api.js";
+import { API_URL, getAuthToken, graphql, graphqlBatch } from "./support/api.js";
 import {
   createAccountGroup,
   createAccountType,
@@ -59,7 +59,7 @@ test.describe("Batch GraphQL operations", () => {
   });
 
   test("batch with invalid query returns error status", async ({ request }) => {
-    const response = await request.post("http://localhost:8080/graphql", {
+    const response = await request.post(`${API_URL}/graphql`, {
       headers: { Authorization: `Bearer ${token}` },
       data: [
         { query: "{ accounts(inactive: false, size: 5) { id } }" },

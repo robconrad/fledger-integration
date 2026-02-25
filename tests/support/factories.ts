@@ -128,7 +128,7 @@ export async function createItem(
       category_id: opts.category_id,
     },
   };
-  if (opts.foreign_key) {
+  if (opts.foreign_key !== undefined) {
     (variables.item as Record<string, unknown>).foreign_key = opts.foreign_key;
   }
   const data = await graphql<{

@@ -40,8 +40,11 @@ test.describe("Chrome Extension: Popup UI", () => {
   });
 
   test.afterAll(async () => {
-    await context?.close();
-    cleanup?.();
+    try {
+      await context?.close();
+    } finally {
+      cleanup?.();
+    }
   });
 
   test("popup page loads and shows accounts", async () => {

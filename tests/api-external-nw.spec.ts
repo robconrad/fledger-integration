@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { getAuthToken, graphql } from "./support/api.js";
-import { uniqueSuffix } from "./support/factories.js";
 
 let token: string;
 
@@ -10,10 +9,9 @@ test.beforeAll(async ({ request }) => {
 
 test.describe("External Net Worth Records via GraphQL", () => {
   let recordId: number;
-  // Use a unique date per run to avoid unique constraint violations on retry
-  const suffix = uniqueSuffix();
-  const dayOffset = parseInt(suffix.slice(-6), 16) % 3650;
-  const testDate = new Date(2020, 0, 1 + dayOffset).toISOString().split("T")[0]!;
+  // Use a unique date per run to avoid unique constraint violations on retry.
+  // Date.now() ms mapped to a day in 2000–2027 range (10000 days).
+  const testDate = new Date(2000, 0, 1 + (Date.now() % 10000)).toISOString().split("T")[0]!;
 
   test("create external_net_worth_record", async ({ request }) => {
     const data = await graphql<{ create_external_net_worth_record: {

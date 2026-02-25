@@ -6,6 +6,7 @@ export async function loginViaUI(page: Page): Promise<void> {
   await page.locator("#username").fill("fledger");
   await page.locator("#password").fill("fledger-local");
   await page.getByRole("button", { name: "Login" }).click();
+  await page.waitForURL(/\/(?!login)/, { timeout: 10_000 });
   await expect(page.getByRole("link", { name: "Logout" })).toBeVisible();
 }
 

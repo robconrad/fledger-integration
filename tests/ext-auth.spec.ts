@@ -8,15 +8,22 @@ test.describe("Chrome Extension: Authentication", () => {
   let extensionId: string;
   let cleanup: () => void;
 
+  let backgroundPage: Page;
+
   test.beforeAll(async () => {
     const ext = await launchExtensionContext();
     context = ext.context;
     extensionId = ext.extensionId;
     cleanup = ext.cleanup;
+    // Keep a background page open so the persistent context stays alive
+    // when individual test pages are closed
+    backgroundPage = await context.newPage();
+    await backgroundPage.goto("about:blank");
   });
 
   test.afterAll(async () => {
     try {
+      await backgroundPage?.close();
       await context?.close();
     } finally {
       cleanup?.();

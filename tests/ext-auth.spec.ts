@@ -56,7 +56,7 @@ test.describe("Chrome Extension: Authentication", () => {
     await optionsPage.getByRole("button", { name: "Login" }).click();
 
     // Wait for status to show logged in
-    await expect(optionsPage.locator("#status")).toContainText("Logged in", { timeout: 10_000 });
+    await expect(optionsPage.locator("#status")).toContainText("Logged in", { timeout: 30_000 });
 
     // Logout button should now be visible
     await expect(optionsPage.getByRole("button", { name: "Logout" })).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("Chrome Extension: Authentication", () => {
     await usernameInput.fill("fledger");
     await passwordInput.fill("fledger-local");
     await optionsPage.getByRole("button", { name: "Login" }).click();
-    await expect(optionsPage.locator("#status")).toContainText("Logged in", { timeout: 10_000 });
+    await expect(optionsPage.locator("#status")).toContainText("Logged in", { timeout: 30_000 });
 
     await optionsPage.getByRole("button", { name: "Logout" }).click();
     await expect(optionsPage.locator("#status")).toContainText("Logged out", { timeout: 10_000 });

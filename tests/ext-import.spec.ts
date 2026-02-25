@@ -135,11 +135,13 @@ test.describe("Chrome Extension: Import workflow", () => {
   });
 
   test("save and retrieve account URL mapping", async () => {
+    const srcKey = `ext-src-${uniqueSuffix()}`;
     const sourceAccount = {
-      sourceKey: `ext-src-${uniqueSuffix()}`,
-      keys: [`ext-src-${uniqueSuffix()}`],
+      sourceKey: srcKey,
+      keys: [srcKey],
       provider: "test-bank",
       displayName: "Test Bank Account",
+      pageUrl: `https://test-bank.example.com/accounts/${uniqueSuffix()}`,
     };
 
     // Save mapping
@@ -151,7 +153,7 @@ test.describe("Chrome Extension: Import workflow", () => {
       accountId: accountId,
       invertAmount: false,
     });
-    expect(saveResult).toHaveProperty("ok", true);
+    expect(saveResult, `SAVE_ACCOUNT_MAPPING failed: ${JSON.stringify(saveResult)}`).toHaveProperty("ok", true);
 
     // Retrieve mapping
     const getResult = await optionsPage.evaluate(async (msg: unknown) => {

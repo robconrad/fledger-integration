@@ -49,8 +49,10 @@ jobs:
         run: |
           DCFG="$RUNNER_TEMP/.docker-ci"
           mkdir -p "$DCFG"
-          echo '{"credsStore":""}' > "$DCFG/config.json"
-          echo "${{ secrets.INTEGRATION_PAT }}" | docker --config "$DCFG" login ghcr.io -u robconrad --password-stdin
+          AUTH=$(echo -n "robconrad:${{ secrets.INTEGRATION_PAT }}" | base64)
+          cat > "$DCFG/config.json" <<EOCFG
+          {"auths":{"ghcr.io":{"auth":"$AUTH"}},"credsStore":""}
+          EOCFG
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 
       # --- Build or pull API image ---

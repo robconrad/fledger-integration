@@ -158,6 +158,7 @@ Each sibling has its own `CLAUDE.md` and `.claude/` directory with path-scoped r
 
 ## Git Workflow
 
+- Before starting new work, always reset to the latest origin/main: `git fetch origin && git checkout main && git reset --hard origin/main`
 - Always create a new branch before making changes: `git checkout -b claude/<descriptive-slug>`
 - Never commit directly to main
 - Commit incrementally after each logical change with descriptive conventional commit messages

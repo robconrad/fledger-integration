@@ -1,15 +1,11 @@
 import { test, expect } from "@playwright/test";
-
-const API_URL = "http://localhost:8080";
+import { getAuthToken, graphql } from "./support/api.js";
+import { createCategoryGroup } from "./support/factories.js";
 
 let token: string;
 
 test.beforeAll(async ({ request }) => {
-  const response = await request.post(`${API_URL}/auth/token`, {
-    data: { username: "fledger", password: "fledger-local" },
-  });
-  const body = await response.json();
-  token = body.token;
+  token = await getAuthToken(request);
 });
 
 test.describe("Categories CRUD via GraphQL", () => {
@@ -18,96 +14,72 @@ test.describe("Categories CRUD via GraphQL", () => {
   let categoryGroupId: number;
 
   test("setup: create category_group", async ({ request }) => {
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        query: `mutation {
-          create_category_group(
-            category_group: {
-              name: "test-catgroup-${Date.now()}"
-              inactive: false
-            }
-          ) { id }
-        }`,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    categoryGroupId = Number(body.data.create_category_group.id);
+    const cg = await createCategoryGroup(request, token);
+    categoryGroupId = cg.id;
   });
 
   test("create category", async ({ request }) => {
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        query: `mutation {
-          create_category(
-            category: {
-              name: "${uniqueName}"
-              category_group_id: ${categoryGroupId}
-              is_transfer: false
-              inactive: false
-            }
-          ) { id name }
-        }`,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.data.create_category.name).toBe(uniqueName);
-    categoryId = Number(body.data.create_category.id);
+    const data = await graphql<{ create_category: { id: string; name: string } }>(
+      request,
+      token,
+      `mutation($cat: CategoryChange!) {
+        create_category(category: $cat) { id name }
+      }`,
+      {
+        cat: {
+          name: uniqueName,
+          category_group_id: categoryGroupId,
+          is_transfer: false,
+          inactive: false,
+        },
+      }
+    );
+    expect(data.create_category.name).toBe(uniqueName);
+    categoryId = Number(data.create_category.id);
   });
 
   test("read categories", async ({ request }) => {
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        query: `{ categories(size: 200) { id name } }`,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    const found = body.data.categories.find(
-      (c: { id: string }) => Number(c.id) === categoryId
+    expect(categoryId, "create test must pass first").toBeDefined();
+    const data = await graphql<{ categories: Array<{ id: string; name: string }> }>(
+      request,
+      token,
+      "{ categories(size: 200) { id name } }"
     );
+    const found = data.categories.find((c) => Number(c.id) === categoryId);
     expect(found).toBeDefined();
-    expect(found.name).toBe(uniqueName);
+    expect(found!.name).toBe(uniqueName);
   });
 
   test("update category", async ({ request }) => {
+    expect(categoryId, "create test must pass first").toBeDefined();
     const updatedName = `${uniqueName}-updated`;
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        query: `mutation {
-          update_category(
-            category: {
-              id: ${categoryId}
-              name: "${updatedName}"
-              category_group_id: ${categoryGroupId}
-              is_transfer: false
-              inactive: false
-            }
-          ) { id name }
-        }`,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.data.update_category.name).toBe(updatedName);
+    const data = await graphql<{ update_category: { id: string; name: string } }>(
+      request,
+      token,
+      `mutation($cat: CategoryUpdate!) {
+        update_category(category: $cat) { id name }
+      }`,
+      {
+        cat: {
+          id: categoryId,
+          name: updatedName,
+          category_group_id: categoryGroupId,
+          is_transfer: false,
+          inactive: false,
+        },
+      }
+    );
+    expect(data.update_category.name).toBe(updatedName);
   });
 
   test("delete category", async ({ request }) => {
-    const response = await request.post(`${API_URL}/graphql`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: {
-        query: `mutation {
-          delete_category(id: ${categoryId})
-        }`,
-      },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body.data.delete_category).toBe(true);
+    expect(categoryId, "create test must pass first").toBeDefined();
+    const data = await graphql<{ delete_category: boolean }>(
+      request,
+      token,
+      `mutation($id: Int!) { delete_category(id: $id) }`,
+      { id: categoryId }
+    );
+    expect(data.delete_category).toBe(true);
   });
 });

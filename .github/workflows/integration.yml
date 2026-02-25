@@ -209,6 +209,17 @@ jobs:
 
       - run: npm ci
 
+      # --- Build Chrome extension (needs Node, runs in parallel with stack startup) ---
+      - name: Clone and build fledger-chrome
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/../fledger-chrome"
+          git clone --depth 1 \
+            "https://x-access-token:${{ secrets.INTEGRATION_PAT }}@github.com/robconrad/fledger-chrome.git" \
+            "$GITHUB_WORKSPACE/../fledger-chrome"
+          cd "$GITHUB_WORKSPACE/../fledger-chrome"
+          npm ci
+          npm run build
+
       # Browsers persist on self-hosted runner — only downloads on first run
       - name: Install Playwright browsers
         run: npx playwright install chromium
@@ -246,4 +257,4 @@ jobs:
         if: always()
         run: |
           docker compose down -v
-          rm -rf /tmp/fledger-api /tmp/fledger-web
+          rm -rf /tmp/fledger-api /tmp/fledger-web "$GITHUB_WORKSPACE/../fledger-chrome"

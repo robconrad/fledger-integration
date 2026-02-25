@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
@@ -12,4 +12,23 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
+  projects: [
+    {
+      name: "api",
+      testMatch: /(?:^|[/\\])(?!ui-|ext-)[^/\\]*\.spec\.ts$/,
+    },
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1920, height: 1080 },
+      },
+      testMatch: /(?:^|[/\\])ui-.*\.spec\.ts$/,
+    },
+    {
+      name: "extension",
+      testMatch: /(?:^|[/\\])ext-.*\.spec\.ts$/,
+      retries: 0,
+    },
+  ],
 });

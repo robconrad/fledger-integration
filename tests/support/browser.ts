@@ -43,6 +43,25 @@ export function waitForOperationRequest(
   );
 }
 
+export async function waitForOperationResponse(
+  page: Page,
+  operationName: string,
+  timeout = 15_000
+): Promise<void> {
+  const response = await page.waitForResponse(
+    (resp) => {
+      const req = resp.request();
+      if (!req.url().includes("/graphql") || req.method() !== "POST") {
+        return false;
+      }
+      const body = req.postData() || "";
+      return body.includes(`"operationName":"${operationName}"`);
+    },
+    { timeout }
+  );
+  expect(response.status()).toBe(200);
+}
+
 export async function selectRowOptionByTyping(
   page: Page,
   row: Locator,

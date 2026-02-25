@@ -8,7 +8,7 @@ import {
   createCategory,
   uniqueSuffix,
 } from "./support/factories.js";
-import { loginViaAPI, selectRowOptionByTyping, waitForOperationRequest, triggerDeleteAndWait } from "./support/browser.js";
+import { loginViaAPI, selectRowOptionByTyping, waitForOperationResponse, triggerDeleteAndWait } from "./support/browser.js";
 
 test.describe("Web UI: Items CRUD", () => {
   let token: string;
@@ -38,37 +38,40 @@ test.describe("Web UI: Items CRUD", () => {
 
     // Create item
     const comments = `ui-item-${uniqueSuffix()}`;
+    const today = new Date().toISOString().split("T")[0]!;
     const headerRow = page.locator("thead tr").last();
     await headerRow.locator("input[placeholder='Comments']").fill(comments);
     await headerRow.locator("input[placeholder='Amount']").fill("42.50");
+    await headerRow.locator("input[type='date']").fill(today);
 
     // Select account and category via dropdowns
     await selectRowOptionByTyping(page, headerRow, 0, accountName);
     await selectRowOptionByTyping(page, headerRow, 1, categoryName);
 
-    const createRequest = waitForOperationRequest(page, "CreateItem");
+    const createDone = waitForOperationResponse(page, "CreateItem");
     await headerRow.getByRole("button", { name: /create/i }).click();
-    await createRequest;
+    await createDone;
 
     // Verify item appears after reload
     await page.reload();
     await page.waitForLoadState("networkidle");
     const row = page.locator("tbody tr", { hasText: comments });
-    await expect(row).toBeVisible();
+    await expect(row).toBeVisible({ timeout: 15_000 });
 
     // Update item
     const updatedComments = `${comments}-upd`;
     await row.locator("td", { hasText: comments }).dblclick();
     const commentsInput = row.locator("input[type='text']").first();
+    await expect(commentsInput).toBeVisible({ timeout: 5_000 });
     await commentsInput.clear();
     await commentsInput.fill(updatedComments);
-    const updateRequest = waitForOperationRequest(page, "UpdateItem");
+    const updateDone = waitForOperationResponse(page, "UpdateItem");
     await row.getByRole("button", { name: /update/i }).click();
-    await updateRequest;
+    await updateDone;
 
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("tbody tr", { hasText: updatedComments })).toBeVisible();
+    await expect(page.locator("tbody tr", { hasText: updatedComments })).toBeVisible({ timeout: 15_000 });
 
     // Delete item
     const updatedRow = page.locator("tbody tr", { hasText: updatedComments });

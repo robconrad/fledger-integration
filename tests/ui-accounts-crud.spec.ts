@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { getAuthToken, WEB_URL } from "./support/api.js";
 import { createAccountGroup, createAccountType, uniqueSuffix } from "./support/factories.js";
-import { loginViaAPI, selectRowOptionByTyping, waitForOperationRequest, triggerDeleteAndWait } from "./support/browser.js";
+import { loginViaAPI, selectRowOptionByTyping, waitForOperationResponse, triggerDeleteAndWait } from "./support/browser.js";
 
 test.describe("Web UI: Accounts CRUD", () => {
   let token: string;
@@ -36,29 +36,30 @@ test.describe("Web UI: Accounts CRUD", () => {
     await selectRowOptionByTyping(page, headerRow, 0, groupName);
     await selectRowOptionByTyping(page, headerRow, 1, typeName);
 
-    const createRequest = waitForOperationRequest(page, "CreateAccount");
+    const createDone = waitForOperationResponse(page, "CreateAccount");
     await headerRow.getByRole("button", { name: /create/i }).click();
-    await createRequest;
+    await createDone;
 
     // Verify row appears after reload
     await page.reload();
     await page.waitForLoadState("networkidle");
     const row = page.locator("tbody tr", { hasText: accountName });
-    await expect(row).toBeVisible();
+    await expect(row).toBeVisible({ timeout: 15_000 });
 
     // Update account — dblclick the name cell to enter edit mode
     const updatedName = `${accountName}-upd`;
     await row.locator("td", { hasText: accountName }).first().dblclick();
     const nameInput = row.locator("input[type='text']").first();
+    await expect(nameInput).toBeVisible({ timeout: 5_000 });
     await nameInput.clear();
     await nameInput.fill(updatedName);
-    const updateRequest = waitForOperationRequest(page, "UpdateAccount");
+    const updateDone = waitForOperationResponse(page, "UpdateAccount");
     await row.getByRole("button", { name: /update/i }).click();
-    await updateRequest;
+    await updateDone;
 
     await page.reload();
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("tbody tr", { hasText: updatedName })).toBeVisible();
+    await expect(page.locator("tbody tr", { hasText: updatedName })).toBeVisible({ timeout: 15_000 });
 
     // Delete account
     const updatedRow = page.locator("tbody tr", { hasText: updatedName });

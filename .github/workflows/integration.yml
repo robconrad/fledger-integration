@@ -49,10 +49,12 @@ jobs:
         run: |
           DCFG="$RUNNER_TEMP/.docker-ci"
           mkdir -p "$DCFG"
+          # Copy CLI plugins (compose, buildx) from default Docker config
+          if [ -d "$HOME/.docker/cli-plugins" ]; then
+            ln -s "$HOME/.docker/cli-plugins" "$DCFG/cli-plugins"
+          fi
           AUTH=$(echo -n "robconrad:${{ secrets.INTEGRATION_PAT }}" | base64)
-          cat > "$DCFG/config.json" <<EOCFG
-          {"auths":{"ghcr.io":{"auth":"$AUTH"}},"credsStore":""}
-          EOCFG
+          printf '{"auths":{"ghcr.io":{"auth":"%s"}},"credsStore":""}' "$AUTH" > "$DCFG/config.json"
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 
       # --- Build or pull API image ---

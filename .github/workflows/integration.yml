@@ -31,6 +31,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # --- Set pending status with link to this run ---
+      - name: Set pending integration status
+        if: inputs.mode == 'pr-gate'
+        run: |
+          gh api "repos/robconrad/${{ inputs.source_repo }}/statuses/${{ inputs.pr_sha }}" \
+            -f state=pending \
+            -f context=integration-tests \
+            -f description="Cross-repo integration tests running..." \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.INTEGRATION_PAT }}
+
       # --- Determine mode ---
       - name: Set mode
         id: mode

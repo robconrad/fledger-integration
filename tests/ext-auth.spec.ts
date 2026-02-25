@@ -7,15 +7,18 @@ test.describe("Chrome Extension: Authentication", () => {
   let context: BrowserContext;
   let extensionId: string;
   let optionsPage: Page;
+  let cleanup: () => void;
 
   test.beforeAll(async () => {
     const ext = await launchExtensionContext();
     context = ext.context;
     extensionId = ext.extensionId;
+    cleanup = ext.cleanup;
   });
 
   test.afterAll(async () => {
     await context?.close();
+    cleanup?.();
   });
 
   test("extension options page loads", async () => {

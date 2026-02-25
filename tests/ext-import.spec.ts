@@ -1,6 +1,6 @@
-import { test, expect, type BrowserContext, type Page, type APIRequestContext } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { isExtensionAvailable, launchExtensionContext, EXTENSION_MESSAGE_TYPES } from "./support/extension.js";
-import { API_URL, getAuthToken, graphql } from "./support/api.js";
+import { getAuthToken, graphql } from "./support/api.js";
 import {
   createAccountGroup,
   createAccountType,
@@ -16,9 +16,9 @@ test.describe("Chrome Extension: Import workflow", () => {
   let context: BrowserContext;
   let extensionId: string;
   let optionsPage: Page;
+  let cleanup: () => void;
   let token: string;
   let accountId: number;
-  let accountName: string;
   let foreignKey: string;
 
   test.beforeAll(async ({ request }) => {
@@ -26,6 +26,7 @@ test.describe("Chrome Extension: Import workflow", () => {
     const ext = await launchExtensionContext();
     context = ext.context;
     extensionId = ext.extensionId;
+    cleanup = ext.cleanup;
 
     // Auth via API to get token for verification queries
     token = await getAuthToken(request);
@@ -35,7 +36,6 @@ test.describe("Chrome Extension: Import workflow", () => {
     const at = await createAccountType(request, token);
     const acc = await createAccount(request, token, { account_group_id: ag.id, account_type_id: at.id });
     accountId = acc.id;
-    accountName = acc.name;
     const cg = await createCategoryGroup(request, token);
     await createCategory(request, token, { category_group_id: cg.id });
 
@@ -54,6 +54,7 @@ test.describe("Chrome Extension: Import workflow", () => {
 
   test.afterAll(async () => {
     await context?.close();
+    cleanup?.();
   });
 
   test("bootstrap returns accounts from API", async () => {
@@ -98,7 +99,8 @@ test.describe("Chrome Extension: Import workflow", () => {
     // Verify via direct API query
     const data = await graphql<{ provisional_items: Array<{ foreign_key: string; account_id: number; amount: number; comments: string }> }>(
       request, token,
-      `{ provisional_items(provisional_item_filters: { foreign_keys: ["${foreignKey}"] }, size: 10) { foreign_key account_id amount comments } }`
+      `query($fks: [String!]!) { provisional_items(provisional_item_filters: { foreign_keys: $fks }, size: 10) { foreign_key account_id amount comments } }`,
+      { fks: [foreignKey] }
     );
     expect(data.provisional_items).toHaveLength(1);
     expect(data.provisional_items[0]!.foreign_key).toBe(foreignKey);

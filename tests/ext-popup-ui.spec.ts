@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
-import { isExtensionAvailable, launchExtensionContext, EXTENSION_MESSAGE_TYPES } from "./support/extension.js";
+import { isExtensionAvailable, launchExtensionContext } from "./support/extension.js";
 import { getAuthToken } from "./support/api.js";
 import {
   createAccountGroup,
@@ -12,11 +12,13 @@ test.skip(!isExtensionAvailable(), "Extension not built — run: cd ../fledger-c
 test.describe("Chrome Extension: Popup UI", () => {
   let context: BrowserContext;
   let extensionId: string;
+  let cleanup: () => void;
 
   test.beforeAll(async ({ request }) => {
     const ext = await launchExtensionContext();
     context = ext.context;
     extensionId = ext.extensionId;
+    cleanup = ext.cleanup;
 
     // Create test account for popup to display
     const token = await getAuthToken(request);
@@ -39,6 +41,7 @@ test.describe("Chrome Extension: Popup UI", () => {
 
   test.afterAll(async () => {
     await context?.close();
+    cleanup?.();
   });
 
   test("popup page loads and shows accounts", async () => {
@@ -46,16 +49,14 @@ test.describe("Chrome Extension: Popup UI", () => {
     await popupPage.goto(`chrome-extension://${extensionId}/src/popup.html`);
     await popupPage.waitForLoadState("domcontentloaded");
 
-    // The popup should render — wait for content to load
-    // The popup shows account select or import UI
+    // The popup should render — wait for content to load from the API
     await expect(popupPage.locator("body")).not.toBeEmpty();
 
-    // Wait for some content to appear (the popup fetches accounts on mount)
-    await popupPage.waitForTimeout(3000);
-
-    // Verify the popup rendered something meaningful
-    const bodyText = await popupPage.locator("body").textContent();
-    expect(bodyText!.length).toBeGreaterThan(0);
+    // Wait for the popup to fetch accounts and render meaningful content
+    await expect(async () => {
+      const bodyText = await popupPage.locator("body").textContent();
+      expect(bodyText!.length).toBeGreaterThan(10);
+    }).toPass({ timeout: 10_000 });
 
     await popupPage.close();
   });
@@ -66,14 +67,15 @@ test.describe("Chrome Extension: Popup UI", () => {
     await popupPage.waitForLoadState("domcontentloaded");
 
     // Since we logged in via options page, the popup should show authenticated state
-    // The AuthPanel should NOT show a login form
-    await popupPage.waitForTimeout(2000);
+    // Wait for the popup to load and check auth state
+    await expect(async () => {
+      const bodyText = await popupPage.locator("body").textContent();
+      expect(bodyText!.length).toBeGreaterThan(0);
+    }).toPass({ timeout: 5_000 });
 
-    // Login button should NOT be visible (already authenticated)
+    // Login button should NOT be visible (already authenticated via shared chrome.storage)
     const loginButton = popupPage.getByRole("button", { name: "Login" });
-    await expect(loginButton).not.toBeVisible({ timeout: 5000 }).catch(() => {
-      // If login button IS visible, it means auth state isn't shared — still valid test
-    });
+    await expect(loginButton).not.toBeVisible({ timeout: 5000 });
 
     await popupPage.close();
   });

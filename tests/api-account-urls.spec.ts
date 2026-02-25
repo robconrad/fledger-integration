@@ -44,7 +44,8 @@ test.describe("Account URLs via GraphQL", () => {
   test("query account_url by URL", async ({ request }) => {
     const data = await graphql<{ account_url: { id: string; url: string } | null }>(
       request, token,
-      `{ account_url(url: "${testUrl}") { id url } }`
+      `query($url: String!) { account_url(url: $url) { id url } }`,
+      { url: testUrl }
     );
     expect(data.account_url).not.toBeNull();
     expect(data.account_url!.url).toBe(testUrl);
@@ -60,7 +61,13 @@ test.describe("Account URLs via GraphQL", () => {
   });
 
   test("update account_url with transaction_dom_config", async ({ request }) => {
-    const domConfig = { version: "1", rowSelector: "tr.row", dateSelector: "td.date", descriptionSelector: "td.desc", amountSelector: "td.amount" };
+    const domConfig = {
+      version: "1",
+      rowSelector: "tr.row",
+      dateSelector: "td.date",
+      descriptionSelector: "td.desc",
+      amountSelector: "td.amount",
+    };
     const data = await graphql<{ update_account_url: {
       id: string; transaction_dom_config: unknown;
     } }>(

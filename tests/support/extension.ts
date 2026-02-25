@@ -17,6 +17,7 @@ export function isExtensionAvailable(): boolean {
 export async function launchExtensionContext(): Promise<{
   context: BrowserContext;
   extensionId: string;
+  cleanup: () => void;
 }> {
   if (!isExtensionAvailable()) {
     throw new Error(
@@ -45,7 +46,11 @@ export async function launchExtensionContext(): Promise<{
     (await context.waitForEvent("serviceworker", { timeout: 10_000 }));
   const extensionId = sw.url().split("/")[2]!;
 
-  return { context, extensionId };
+  const cleanup = () => {
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+  };
+
+  return { context, extensionId, cleanup };
 }
 
 export const EXTENSION_MESSAGE_TYPES = {

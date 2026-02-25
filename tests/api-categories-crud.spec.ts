@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getAuthToken, graphql } from "./support/api.js";
-import { createCategoryGroup, uniqueSuffix } from "./support/factories.js";
+import { createCategoryGroup } from "./support/factories.js";
 
 let token: string;
 

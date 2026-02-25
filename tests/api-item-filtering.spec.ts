@@ -106,7 +106,8 @@ test.describe("Item filtering via GraphQL", () => {
   test("filter by foreign_key", async ({ request }) => {
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `{ items(item_filters: { foreign_key: "${fk1}" }, size: 100) { foreign_key } }`
+      `query($fk: String!) { items(item_filters: { foreign_key: $fk }, size: 100) { foreign_key } }`,
+      { fk: fk1 }
     );
     expect(data.items).toHaveLength(1);
     expect(data.items[0]!.foreign_key).toBe(fk1);
@@ -115,7 +116,8 @@ test.describe("Item filtering via GraphQL", () => {
   test("filter by foreign_keys array", async ({ request }) => {
     const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
       request, token,
-      `{ items(item_filters: { foreign_keys: ["${fk1}", "${fk2}"] }, size: 100) { foreign_key } }`
+      `query($fks: [String!]!) { items(item_filters: { foreign_keys: $fks }, size: 100) { foreign_key } }`,
+      { fks: [fk1, fk2] }
     );
     expect(data.items).toHaveLength(2);
     const keys = data.items.map((i) => i.foreign_key);

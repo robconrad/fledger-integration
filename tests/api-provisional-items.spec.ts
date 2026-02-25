@@ -68,7 +68,8 @@ test.describe("Provisional Items via GraphQL", () => {
   test("query by foreign_keys filter", async ({ request }) => {
     const data = await graphql<{ provisional_items: Array<{ id: string; foreign_key: string }> }>(
       request, token,
-      `{ provisional_items(provisional_item_filters: { foreign_keys: ["${foreignKey}"] }, size: 100) { id foreign_key } }`
+      `query($fks: [String!]!) { provisional_items(provisional_item_filters: { foreign_keys: $fks }, size: 100) { id foreign_key } }`,
+      { fks: [foreignKey] }
     );
     expect(data.provisional_items).toHaveLength(1);
     expect(data.provisional_items[0]!.foreign_key).toBe(foreignKey);

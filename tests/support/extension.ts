@@ -2,6 +2,7 @@ import { chromium, type BrowserContext } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { API_URL } from "./api.js";
 
 // Playwright transpiles TS to CJS, so __dirname is available at runtime.
 // Path: tests/support/ → ../../ → fledger-integration/ → ../ → fledger/
@@ -45,6 +46,21 @@ export async function launchExtensionContext(): Promise<{
     context.serviceWorkers()[0] ||
     (await context.waitForEvent("serviceworker", { timeout: 10_000 }));
   const extensionId = sw.url().split("/")[2]!;
+
+  // Configure the extension's graphql endpoint to match the dynamic API_PORT.
+  // The extension defaults to localhost:8080 which won't match in CI.
+  // Use a page in the extension origin so chrome.storage is available.
+  const graphqlEndpoint = `${API_URL}/graphql`;
+  const setupPage = await context.newPage();
+  await setupPage.goto(`chrome-extension://${extensionId}/src/options.html`);
+  await setupPage.waitForLoadState("domcontentloaded");
+  await setupPage.evaluate(async (endpoint) => {
+    const stored = await chrome.storage.sync.get("fledgerImporterSettings");
+    const settings = (stored["fledgerImporterSettings"] as Record<string, unknown>) || {};
+    settings.graphqlEndpoint = endpoint;
+    await chrome.storage.sync.set({ fledgerImporterSettings: settings });
+  }, graphqlEndpoint);
+  await setupPage.close();
 
   const cleanup = () => {
     fs.rmSync(userDataDir, { recursive: true, force: true });

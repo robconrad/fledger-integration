@@ -28,8 +28,25 @@ jobs:
   integration:
     runs-on: [self-hosted, macOS, deploy]
     timeout-minutes: 30
+    env:
+      COMPOSE_PROJECT_NAME: fledger-ci-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
+
+      # --- Allocate unique ports to avoid collisions between concurrent runs ---
+      - name: Allocate unique ports for this run
+        run: |
+          OFFSET=$(( GITHUB_RUN_ID % 5000 ))
+          echo "API_PORT=$(( 28000 + OFFSET ))" >> "$GITHUB_ENV"
+          echo "PG_PORT=$(( 33000 + OFFSET ))" >> "$GITHUB_ENV"
+          echo "WEB_PORT=$(( 38000 + OFFSET ))" >> "$GITHUB_ENV"
+
+      - name: Pre-cleanup stale containers
+        run: |
+          docker compose down -v 2>/dev/null || true
+          for port in $API_PORT $PG_PORT $WEB_PORT; do
+            lsof -ti :$port | xargs kill -9 2>/dev/null || true
+          done
 
       # --- Set per-run build directories to avoid races between concurrent runs ---
       - name: Set build directories
@@ -104,7 +121,7 @@ jobs:
         working-directory: ${{ env.API_BUILD_DIR }}
         run: |
           sbt assembly
-          docker build --platform linux/amd64 -t fledger-api:candidate .
+          docker build --platform linux/arm64 -t fledger-api:candidate .
 
       - name: Pull latest API image (or build from source)
         if: steps.mode.outputs.source_repo != 'fledger-api' || steps.mode.outputs.mode != 'pr-gate'
@@ -142,7 +159,7 @@ jobs:
         working-directory: ${{ env.API_BUILD_DIR }}
         run: |
           sbt assembly
-          docker build --platform linux/amd64 -t fledger-api:candidate .
+          docker build --platform linux/arm64 -t fledger-api:candidate .
 
       # --- Build or pull Web image ---
       - name: Build Web candidate from PR
@@ -168,7 +185,7 @@ jobs:
         run: |
           npm ci
           npm run build:docker
-          docker build --platform linux/amd64 -t fledger-web:candidate .
+          docker build --platform linux/arm64 -t fledger-web:candidate .
 
       - name: Pull latest Web image (or build from source)
         if: steps.mode.outputs.source_repo != 'fledger-web' || steps.mode.outputs.mode != 'pr-gate'
@@ -202,7 +219,7 @@ jobs:
         run: |
           npm ci
           npm run build:docker
-          docker build --platform linux/amd64 -t fledger-web:candidate .
+          docker build --platform linux/arm64 -t fledger-web:candidate .
 
       # --- Run stack ---
       - name: Start docker-compose stack
@@ -238,6 +255,8 @@ jobs:
         run: npx playwright test
         env:
           CI: "true"
+          API_PORT: ${{ env.API_PORT }}
+          WEB_PORT: ${{ env.WEB_PORT }}
 
       # --- Report back to PR ---
       - name: Report success to PR

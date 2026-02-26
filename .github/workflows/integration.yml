@@ -167,7 +167,7 @@ jobs:
         working-directory: ${{ env.WEB_BUILD_DIR }}
         run: |
           npm ci
-          REACT_APP_API_GATEWAY_URL=http://localhost:8080 npm run build
+          npm run build:docker
           docker build --platform linux/amd64 -t fledger-web:candidate .
 
       - name: Pull latest Web image (or build from source)
@@ -201,9 +201,7 @@ jobs:
         working-directory: ${{ env.WEB_BUILD_DIR }}
         run: |
           npm ci
-          REACT_APP_API_GATEWAY_URL=http://localhost:8080 \
-          REACT_APP_API_GATEWAY_GRAPHQL_PATH=graphql \
-          npm run build
+          npm run build:docker
           docker build --platform linux/amd64 -t fledger-web:candidate .
 
       # --- Run stack ---

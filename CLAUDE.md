@@ -37,19 +37,21 @@ TypeScript, Playwright, Docker Compose, PostgreSQL 18 (Alpine).
 
 `docker-compose.yml` defines three services:
 
-| Service | Image | Port | Health check |
-|---------|-------|------|-------------|
-| `postgres` | `postgres:18-alpine` | 5432 | `pg_isready` |
-| `api` | `${API_IMAGE:-fledger-api:candidate}` | 8080 | `curl /openapi.yaml` |
-| `web` | `${WEB_IMAGE:-fledger-web:candidate}` | 3200 (→80) | depends on api |
+| Service | Image | Host port (default) | Container port | Health check |
+|---------|-------|---------------------|----------------|-------------|
+| `postgres` | `postgres:18-alpine` | `${PG_PORT:-25432}` | 5432 | `pg_isready` |
+| `api` | `${API_IMAGE:-fledger-api:candidate}` | `${API_PORT:-28080}` | 8080 | `curl /openapi.yaml` |
+| `web` | `${WEB_IMAGE:-fledger-web:candidate}` | `${WEB_PORT:-23200}` | 80 | depends on api |
 
 Override images with env vars: `API_IMAGE=... WEB_IMAGE=... docker compose up -d --wait`
+
+Host port defaults (25432, 28080, 23200) are offset from standard dev ports to avoid collisions with local `sbt run` (8080) or `npm start` (5173). CI allocates unique ports per run for parallel execution.
 
 Default DB credentials: user `fledger`, password `fledger-db`, database `fledger`.
 
 ## Test Structure
 
-Tests live in `tests/` — all are Playwright specs running against the Docker stack at `http://localhost:3200` (web) and `http://localhost:8080` (API):
+Tests live in `tests/` — all are Playwright specs running against the Docker stack (web on `WEB_PORT`, default 23200; API on `API_PORT`, default 28080):
 
 - `health.spec.ts` — Basic stack health checks
 - `auth.spec.ts` — JWT auth flow
@@ -69,7 +71,7 @@ The GitHub Actions workflow (`.github/workflows/integration.yml`) runs in three 
 | `post-deploy` | `repository_dispatch` or `workflow_dispatch` | Pulls latest GHCR images, runs tests against deployed versions |
 | `scheduled` | Weekly Monday 6am UTC | Same as post-deploy — catches drift |
 
-Image resolution: PR-gate builds from source; other modes pull from `ghcr.io/robconrad/fledger-{api,web}:latest` with fallback to building from source if GHCR pull fails.
+Image resolution: PR-gate builds from source; other modes pull from `ghcr.io/robconrad/fledger-{api,web}:latest` with fallback to building from source. Web images use runtime API URL injection (entrypoint sed) so GHCR images work with any API port.
 
 ## Sibling Repo Context
 

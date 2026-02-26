@@ -1,7 +1,7 @@
 import { expect, type APIRequestContext } from "@playwright/test";
 
-export const API_URL = "http://localhost:8080";
-export const WEB_URL = "http://localhost:3200";
+export const API_URL = `http://localhost:${process.env.API_PORT || "28080"}`;
+export const WEB_URL = `http://localhost:${process.env.WEB_PORT || "23200"}`;
 
 export async function getAuthToken(request: APIRequestContext): Promise<string> {
   const response = await request.post(`${API_URL}/auth/token`, {

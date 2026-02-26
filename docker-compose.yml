@@ -10,7 +10,7 @@ services:
       interval: 2s
       retries: 10
     ports:
-      - "5432:5432"
+      - "${PG_PORT:-25432}:5432"
 
   api:
     image: ${API_IMAGE:-fledger-api:candidate}
@@ -21,7 +21,7 @@ services:
       CONFIG_FILE: application.conf
       JAVA_TOOL_OPTIONS: -Ddb.host=postgres
     ports:
-      - "8080:8080"
+      - "${API_PORT:-28080}:8080"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/openapi.yaml > /dev/null"]
       interval: 5s
@@ -35,6 +35,6 @@ services:
       api:
         condition: service_healthy
     environment:
-      REACT_APP_API_GATEWAY_URL: http://localhost:${API_PORT:-8080}
+      REACT_APP_API_GATEWAY_URL: http://localhost:${API_PORT:-28080}
     ports:
-      - "3200:80"
+      - "${WEB_PORT:-23200}:80"

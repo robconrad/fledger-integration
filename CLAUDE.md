@@ -169,6 +169,6 @@ Each sibling has its own `CLAUDE.md` and `.claude/` directory with path-scoped r
 - After all work is complete and verified, push the branch: `git push -u origin HEAD`
 - **Before opening a PR, merge latest main**: `git fetch origin && git merge origin/main` — resolve conflicts locally before pushing
 - Then open a PR: `gh pr create --base main --title "<conventional-commit-style title>" --body "<summary of changes, motivation, and anything the reviewer should know>"`
-- **After opening a PR, watch CI** (`gh pr checks <number> --watch`) — if it fails, fix the issue, push again, and re-check until CI passes. You are not done until CI is green.
+- **After opening a PR, watch CI and review comments** (`gh pr checks <number> --watch`, then `gh pr view <number> --comments` and `gh api repos/{owner}/{repo}/pulls/<number>/comments`) — fix CI failures and address any actionable review feedback, push fixes, and re-check. You are not done until CI is green and review comments are addressed.
 - If this is part of a cross-repo change, include links to related PRs in the body
 - Do NOT merge PRs. Leave them for human review

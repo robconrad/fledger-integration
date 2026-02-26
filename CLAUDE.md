@@ -165,7 +165,10 @@ Each sibling has its own `CLAUDE.md` and `.claude/` directory with path-scoped r
 - Never commit directly to main
 - Commit incrementally after each logical change with descriptive conventional commit messages
 - Use descriptive branch names (e.g. `claude/add-integration-test`, `claude/fix-stack-setup`)
+- **Before pushing, run `npm test`** against the Docker stack and fix any failures
 - After all work is complete and verified, push the branch: `git push -u origin HEAD`
+- **Before opening a PR, merge latest main**: `git fetch origin && git merge origin/main` — resolve conflicts locally before pushing
 - Then open a PR: `gh pr create --base main --title "<conventional-commit-style title>" --body "<summary of changes, motivation, and anything the reviewer should know>"`
+- **After opening a PR, watch CI** (`gh pr checks <number> --watch`) — if it fails, fix the issue, push again, and re-check until CI passes. You are not done until CI is green.
 - If this is part of a cross-repo change, include links to related PRs in the body
 - Do NOT merge PRs. Leave them for human review

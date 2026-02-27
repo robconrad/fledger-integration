@@ -89,7 +89,7 @@ jobs:
           if [ -d "$HOME/.docker/cli-plugins" ]; then
             ln -s "$HOME/.docker/cli-plugins" "$DCFG/cli-plugins"
           fi
-          AUTH=$(echo -n "robconrad:${{ secrets.INTEGRATION_PAT }}" | base64)
+          AUTH=$(echo -n "robconrad:${{ secrets.GHCR_READ_TOKEN }}" | base64)
           printf '{"auths":{"ghcr.io":{"auth":"%s"}},"credsStore":""}' "$AUTH" > "$DCFG/config.json"
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 

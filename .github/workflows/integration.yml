@@ -89,7 +89,7 @@ jobs:
           if [ -d "$HOME/.docker/cli-plugins" ]; then
             ln -s "$HOME/.docker/cli-plugins" "$DCFG/cli-plugins"
           fi
-          AUTH=$(echo -n "robconrad:${{ secrets.INTEGRATION_PAT }}" | base64)
+          AUTH=$(echo -n "robconrad:${{ secrets.GHCR_READ_TOKEN }}" | base64)
           printf '{"auths":{"ghcr.io":{"auth":"%s"}},"credsStore":""}' "$AUTH" > "$DCFG/config.json"
           echo "DOCKER_CONFIG=$DCFG" >> "$GITHUB_ENV"
 
@@ -127,11 +127,11 @@ jobs:
         if: steps.mode.outputs.source_repo != 'fledger-api' || steps.mode.outputs.mode != 'pr-gate'
         id: pull-api
         run: |
-          if docker pull ghcr.io/robconrad/fledger-api:latest 2>/dev/null; then
+          if docker pull ghcr.io/robconrad/fledger-api:latest; then
             docker tag ghcr.io/robconrad/fledger-api:latest fledger-api:candidate
             echo "built_from_source=false" >> "$GITHUB_OUTPUT"
           else
-            echo "GHCR image not found — will build API from source"
+            echo "::warning::Failed to pull ghcr.io/robconrad/fledger-api:latest — will build from source"
             echo "built_from_source=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -191,11 +191,11 @@ jobs:
         if: steps.mode.outputs.source_repo != 'fledger-web' || steps.mode.outputs.mode != 'pr-gate'
         id: pull-web
         run: |
-          if docker pull ghcr.io/robconrad/fledger-web:latest 2>/dev/null; then
+          if docker pull ghcr.io/robconrad/fledger-web:latest; then
             docker tag ghcr.io/robconrad/fledger-web:latest fledger-web:candidate
             echo "built_from_source=false" >> "$GITHUB_OUTPUT"
           else
-            echo "GHCR image not found — will build Web from source"
+            echo "::warning::Failed to pull ghcr.io/robconrad/fledger-web:latest — will build from source"
             echo "built_from_source=true" >> "$GITHUB_OUTPUT"
           fi
 

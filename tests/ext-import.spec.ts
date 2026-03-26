@@ -128,7 +128,7 @@ test.describe("Chrome Extension: Import workflow", () => {
       overrideAccountId: accountId,
     });
 
-    expect(result).toHaveProperty("ok", true);
+    expect(result, `IMPORTER_BOOTSTRAP failed: ${JSON.stringify(result)}`).toHaveProperty("ok", true);
     // The bootstrap should identify this transaction as already imported
     const items = (result as { items: Array<{ alreadySynced?: boolean; fingerprint: string }> }).items;
     expect(items.length).toBeGreaterThan(0);

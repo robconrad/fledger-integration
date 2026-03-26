@@ -80,6 +80,20 @@ test.describe("External Items via GraphQL", () => {
     expect(found).toBeDefined();
   });
 
+  test("update external item", async ({ request }) => {
+    expect(externalItemId, "create test must pass first").toBeDefined();
+    const data = await graphql<{ update_external_item: { id: string; amount: number; comments: string } }>(
+      request, token,
+      `mutation($ei: ExternalItemUpdate!) {
+        update_external_item(external_item: $ei) { id amount comments }
+      }`,
+      { ei: { id: externalItemId, amount: 9999, comments: "updated-external" } }
+    );
+    expect(Number(data.update_external_item.id)).toBe(externalItemId);
+    expect(data.update_external_item.amount).toBe(9999);
+    expect(data.update_external_item.comments).toBe("updated-external");
+  });
+
   test("link external item to item", async ({ request }) => {
     expect(externalItemId, "create test must pass first").toBeDefined();
     // Create an item to link to

@@ -21,6 +21,7 @@ test.describe("Item filtering via GraphQL", () => {
   let categoryId1: number;
   let categoryGroupId1: number;
   let categoryGroupId2: number;
+
   test("setup: create entities and items", async ({ request }) => {
     const ag = await createAccountGroup(request, token);
     const at = await createAccountType(request, token);

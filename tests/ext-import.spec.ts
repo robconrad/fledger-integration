@@ -78,12 +78,12 @@ test.describe("Chrome Extension: Import workflow", () => {
     expect(found).toBeDefined();
   });
 
-  test("import provisional transactions via extension", async ({ request }) => {
+  test("import external transactions via extension", async ({ request }) => {
     foreignKey = `ext-test-fk-${uniqueSuffix()}`;
     const result = await optionsPage.evaluate(async (msg: unknown) => {
       return await chrome.runtime.sendMessage(msg);
     }, {
-      type: EXTENSION_MESSAGE_TYPES.IMPORT_PROVISIONAL_TRANSACTIONS,
+      type: EXTENSION_MESSAGE_TYPES.IMPORT_EXTERNAL_TRANSACTIONS,
       transactions: [{
         fingerprint: `ext-test-fp-${Date.now()}`,
         foreignKey: foreignKey,
@@ -100,14 +100,14 @@ test.describe("Chrome Extension: Import workflow", () => {
     expect(importResult.created.length).toBe(1);
 
     // Verify via direct API query
-    const data = await graphql<{ provisional_items: Array<{ foreign_key: string; account_id: number; amount: number; comments: string }> }>(
+    const data = await graphql<{ external_items: Array<{ foreign_key: string; account_id: number; amount: number; comments: string }> }>(
       request, token,
-      `query($fks: [String!]!) { provisional_items(provisional_item_filters: { foreign_keys: $fks }, size: 10) { foreign_key account_id amount comments } }`,
+      `query($fks: [String!]!) { external_items(external_item_filters: { foreign_keys: $fks }, size: 10) { foreign_key account_id amount comments } }`,
       { fks: [foreignKey] }
     );
-    expect(data.provisional_items).toHaveLength(1);
-    expect(data.provisional_items[0]!.foreign_key).toBe(foreignKey);
-    expect(data.provisional_items[0]!.account_id).toBe(accountId);
+    expect(data.external_items).toHaveLength(1);
+    expect(data.external_items[0]!.foreign_key).toBe(foreignKey);
+    expect(data.external_items[0]!.account_id).toBe(accountId);
   });
 
   test("dedup check returns synced items", async () => {

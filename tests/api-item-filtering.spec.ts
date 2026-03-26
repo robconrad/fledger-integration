@@ -21,9 +21,6 @@ test.describe("Item filtering via GraphQL", () => {
   let categoryId1: number;
   let categoryGroupId1: number;
   let categoryGroupId2: number;
-  const fk1 = `fk-filter-${Date.now()}-a`;
-  const fk2 = `fk-filter-${Date.now()}-b`;
-
   test("setup: create entities and items", async ({ request }) => {
     const ag = await createAccountGroup(request, token);
     const at = await createAccountType(request, token);
@@ -41,9 +38,9 @@ test.describe("Item filtering via GraphQL", () => {
     categoryId1 = cat1.id;
 
     // Create items with different dates, amounts, accounts, categories
-    await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 1000, date: "2025-01-15", comments: "filter-item-alpha", foreign_key: fk1 });
+    await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 1000, date: "2025-01-15", comments: "filter-item-alpha" });
     await createItem(request, token, { account_id: accountId1, category_id: cat2.id, amount: 5000, date: "2025-06-15", comments: "filter-item-beta" });
-    await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 2000, date: "2025-03-01", comments: "filter-item-gamma", foreign_key: fk2 });
+    await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 2000, date: "2025-03-01", comments: "filter-item-gamma" });
     await createItem(request, token, { account_id: accountId2, category_id: cat2.id, amount: 8000, date: "2025-09-20", comments: "filter-item-delta" });
     await createItem(request, token, { account_id: accountId1, category_id: categoryId1, amount: 300, date: "2025-12-31", comments: "filter-item-epsilon" });
   });
@@ -133,27 +130,4 @@ test.describe("Item filtering via GraphQL", () => {
     expect(data.items[0]!.comments).toContain("filter-item-alpha");
   });
 
-  test("filter by foreign_key", async ({ request }) => {
-    expect(accountId1, "setup test must pass first").toBeDefined();
-    const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
-      request, token,
-      `query($accId: Int!, $fk: String!) { items(item_filters: { account_id: $accId, foreign_key: $fk }, size: 100) { foreign_key } }`,
-      { accId: accountId1, fk: fk1 }
-    );
-    expect(data.items).toHaveLength(1);
-    expect(data.items[0]!.foreign_key).toBe(fk1);
-  });
-
-  test("filter by foreign_keys array", async ({ request }) => {
-    expect(accountId1, "setup test must pass first").toBeDefined();
-    const data = await graphql<{ items: Array<{ foreign_key: string | null }> }>(
-      request, token,
-      `query($accId: Int!, $fks: [String!]!) { items(item_filters: { account_id: $accId, foreign_keys: $fks }, size: 100) { foreign_key } }`,
-      { accId: accountId1, fks: [fk1, fk2] }
-    );
-    expect(data.items).toHaveLength(2);
-    const keys = data.items.map((i) => i.foreign_key);
-    expect(keys).toContain(fk1);
-    expect(keys).toContain(fk2);
-  });
 });

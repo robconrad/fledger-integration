@@ -7,6 +7,7 @@ import {
   createCategoryGroup,
   createCategory,
   createItem,
+  createExternalItem,
 } from "./support/factories.js";
 
 let token: string;
@@ -32,27 +33,17 @@ test.describe("External Items via GraphQL", () => {
   });
 
   test("create external item", async ({ request }) => {
-    const data = await graphql<{ create_external_item: {
-      id: string; amount: number; comments: string; foreign_key: string; account_id: number; date: string; linked_item_ids: number[];
-    } }>(
-      request, token,
-      `mutation($ei: ExternalItemChange!) {
-        create_external_item(external_item: $ei) { id amount comments foreign_key account_id date linked_item_ids }
-      }`,
-      {
-        ei: {
-          account_id: accountId,
-          amount: 4250,
-          comments: "external-test",
-          date: "2025-06-01",
-          foreign_key: foreignKey,
-        },
-      }
-    );
-    expect(data.create_external_item.foreign_key).toBe(foreignKey);
-    expect(data.create_external_item.amount).toBe(4250);
-    expect(data.create_external_item.linked_item_ids).toEqual([]);
-    externalItemId = Number(data.create_external_item.id);
+    const ei = await createExternalItem(request, token, {
+      account_id: accountId,
+      amount: 4250,
+      comments: "external-test",
+      foreign_key: foreignKey,
+      date: "2025-06-01",
+    });
+    expect(ei.foreign_key).toBe(foreignKey);
+    expect(ei.amount).toBe(4250);
+    expect(ei.linked_item_ids).toEqual([]);
+    externalItemId = ei.id;
   });
 
   test("query external items list", async ({ request }) => {

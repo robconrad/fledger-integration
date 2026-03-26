@@ -150,7 +150,7 @@ GraphiQL is available at http://localhost:8080/graphiql.
 
 ## Domain Entities
 
-Accounts, Account Groups, Account Types, Categories, Category Groups, Items (transactions), Transfer Items, Provisional Items, External Net Worth Records, Slices (time-aggregated reports), Normalization (projected category-group breakdowns).
+Accounts, Account Groups, Account Types, Categories, Category Groups, Items (transactions), Transfer Items, External Items (bank-imported transactions linked to items via junction table), External Net Worth Records, Slices (time-aggregated reports), Normalization (projected category-group breakdowns).
 
 ## Sibling Repo Details
 

@@ -114,23 +114,10 @@ export async function createItem(
     amount: number;
     date?: string;
     comments?: string;
-    foreign_key?: string;
   }
 ): Promise<{ id: number; date: string; amount: number; comments: string }> {
   const date = opts.date ?? new Date().toISOString().split("T")[0]!;
   const comments = opts.comments ?? `test-item-${uniqueSuffix()}`;
-  const variables: Record<string, unknown> = {
-    item: {
-      date,
-      amount: opts.amount,
-      comments,
-      account_id: opts.account_id,
-      category_id: opts.category_id,
-    },
-  };
-  if (opts.foreign_key !== undefined) {
-    (variables.item as Record<string, unknown>).foreign_key = opts.foreign_key;
-  }
   const data = await graphql<{
     create_item: { id: string; date: string; amount: number; comments: string };
   }>(
@@ -139,12 +126,60 @@ export async function createItem(
     `mutation($item: ItemChange!) {
       create_item(item: $item) { id date amount comments }
     }`,
-    variables
+    {
+      item: {
+        date,
+        amount: opts.amount,
+        comments,
+        account_id: opts.account_id,
+        category_id: opts.category_id,
+      },
+    }
   );
   return {
     id: Number(data.create_item.id),
     date: data.create_item.date,
     amount: data.create_item.amount,
     comments: data.create_item.comments,
+  };
+}
+
+export async function createExternalItem(
+  request: APIRequestContext,
+  token: string,
+  opts: {
+    account_id: number;
+    amount: number;
+    foreign_key: string;
+    date?: string;
+    comments?: string;
+  }
+): Promise<{ id: number; foreign_key: string; amount: number; comments: string; linked_item_ids: number[] }> {
+  const date = opts.date ?? new Date().toISOString().split("T")[0]!;
+  const comments = opts.comments ?? `test-ext-${uniqueSuffix()}`;
+  const data = await graphql<{
+    create_external_item: { id: string; foreign_key: string; amount: number; comments: string; linked_item_ids: number[] };
+  }>(
+    request,
+    token,
+    `mutation($ei: ExternalItemChange!) {
+      create_external_item(external_item: $ei) { id foreign_key amount comments linked_item_ids }
+    }`,
+    {
+      ei: {
+        date,
+        amount: opts.amount,
+        comments,
+        account_id: opts.account_id,
+        foreign_key: opts.foreign_key,
+      },
+    }
+  );
+  return {
+    id: Number(data.create_external_item.id),
+    foreign_key: data.create_external_item.foreign_key,
+    amount: data.create_external_item.amount,
+    comments: data.create_external_item.comments,
+    linked_item_ids: data.create_external_item.linked_item_ids,
   };
 }

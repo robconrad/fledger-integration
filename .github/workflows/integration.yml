@@ -32,6 +32,8 @@ jobs:
       COMPOSE_PROJECT_NAME: fledger-ci-${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: true
 
       # --- Allocate unique ports to avoid collisions between concurrent runs ---
       - name: Allocate unique ports for this run

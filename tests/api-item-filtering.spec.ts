@@ -129,5 +129,4 @@ test.describe("Item filtering via GraphQL", () => {
     expect(data.items.length).toBeGreaterThanOrEqual(1);
     expect(data.items[0]!.comments).toContain("filter-item-alpha");
   });
-
 });

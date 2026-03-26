@@ -7,7 +7,6 @@ import {
   createCategoryGroup,
   createCategory,
   createItem,
-  createExternalItem,
 } from "./support/factories.js";
 
 let token: string;
